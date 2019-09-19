@@ -1,9 +1,11 @@
 import java.awt.Color;
+import java.util.ArrayList;
 import uchicago.src.sim.engine.Schedule;
 import uchicago.src.sim.engine.SimModelImpl;
 import uchicago.src.sim.engine.SimInit;
 import uchicago.src.sim.gui.DisplaySurface;
 import uchicago.src.sim.gui.ColorMap;
+import uchicago.src.sim.gui.Object2DDisplay;
 import uchicago.src.sim.gui.Value2DDisplay;
 
 /**
@@ -22,8 +24,10 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	private static final int GRID_SIZE = 20;
 	private static final int NUM_INIT_RABBITS = 4;
 	private static final int NUM_INIT_GRASS = 12;
-	private static final double GRASS_GROWTH_RATE = 0.1;
-	private static final int BIRTH_THRESHOLD = 5;
+	private static final int GRASS_GROWTH_RATE = 1;
+	private static final int BIRTH_THRESHOLD = 20;
+	private static final int GRASS_ENERGY = 5;
+	private static final int INIT_RABBIT_ENERGY = 10;
 
 	private Schedule schedule;
   
@@ -31,11 +35,15 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 
 	private DisplaySurface displaySurf;
 
+	private ArrayList<RabbitsGrassSimulationAgent> agentList;
+
   	private int gridSize = GRID_SIZE;
   	private int numInitRabbits = NUM_INIT_RABBITS;
   	private int numInitGrass = NUM_INIT_GRASS;
-  	private double grassGrowthRate = GRASS_GROWTH_RATE;
+  	private int grassGrowthRate = GRASS_GROWTH_RATE;
   	private int birthThreshold = BIRTH_THRESHOLD;
+  	private int grassEnergy = GRASS_ENERGY;
+  	private int initRabbitEnergy = INIT_RABBIT_ENERGY;
 
 	public static void main(String[] args) 
 	{
@@ -61,6 +69,8 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 		System.out.println("Running setup");
 		grassSpace = null;
 		
+	    agentList = new ArrayList<RabbitsGrassSimulationAgent>();
+
 		if (displaySurf != null)
 		{
 			displaySurf.dispose();
@@ -89,6 +99,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	/**
 	 * Build the model
 	 * Add the simulation space
+	 * Create the agents
 	 */	
 	private void buildModel()
 	{
@@ -96,6 +107,11 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    grassSpace = new RabbitsGrassSimulationSpace(gridSize, gridSize);
 	    grassSpace.spreadGrass(numInitGrass);
 
+	    for(int i = 0; i < numInitRabbits; i++)
+	    {
+	    	RabbitsGrassSimulationAgent newAgent = addNewAgent();
+	    	newAgent.report();
+	    }
 	}
 	
 	/**
@@ -108,7 +124,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	
 	/**
 	 * Build the display
-	 * Create a window to display the space
+	 * Create a window to display the space with the grass and the agents
 	 */	
 	private void buildDisplay()
 	{
@@ -120,8 +136,13 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    map.mapColor(1, Color.green);
 
 	    Value2DDisplay displayGrass = new Value2DDisplay(grassSpace.getCurrentGrassSpace(), map);
+	    
+	    Object2DDisplay displayAgents = new Object2DDisplay(grassSpace.getCurrentAgentSpace());
+	    displayAgents.setObjectList(agentList);
 
 	    displaySurf.addDisplayable(displayGrass, "Grass");
+	    displaySurf.addDisplayable(displayAgents, "Agents");
+
 	}
 
 	/**
@@ -133,7 +154,16 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	{
 		// Parameters to be set by users via the Repast UI slider bar
 		// Do "not" modify the parameters names provided in the skeleton code, you can add more if you want 
-		String[] params = { "GridSize", "NumInitRabbits", "NumInitGrass", "GrassGrowthRate", "BirthThreshold" };
+		String[] params = 
+		{ 
+			"GridSize", 
+			"NumInitRabbits", 
+			"NumInitGrass", 
+			"GrassGrowthRate", 
+			"BirthThreshold", 
+			"GrassEnergy",
+			"InitRabbitEnergy"
+		};
 		return params;
 	}
 
@@ -157,6 +187,23 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 		return schedule;
 	}
 
+	
+	/**
+	 * Create a new agent somewhere in the space
+	 * @return The new agent
+	 */
+	private RabbitsGrassSimulationAgent addNewAgent()
+	{
+	    RabbitsGrassSimulationAgent a = new RabbitsGrassSimulationAgent(initRabbitEnergy);
+	    agentList.add(a);
+	    grassSpace.addAgent(a);
+	    return a;
+	}
+	
+	
+	
+	
+	
 
 	/**
 	 * Getter for 'gridSize'
@@ -216,7 +263,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	 * Getter for 'grassGrowthRate'
 	 * @return Rate the grass should grow
 	 */	
-	public double getGrassGrowthRate() 
+	public int getGrassGrowthRate() 
 	{
 		return grassGrowthRate;
 	}
@@ -225,7 +272,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	 * Setter for 'grassGrowthRate'
 	 * @param grassGrowthRate
 	 */	
-	public void setGrassGrowthRate(double grassGrowthRate) 
+	public void setGrassGrowthRate(int grassGrowthRate) 
 	{
 		this.grassGrowthRate = grassGrowthRate;
 	}
@@ -246,6 +293,43 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	public void setBirthThreshold(int birthThreshold) 
 	{
 		this.birthThreshold = birthThreshold;
+	}
+	
+	/**
+	 * Getter for 'grassEnergy'
+	 * @return Grass energy conversion rate
+	 */	
+	public int getGrassEnergy() 
+	{
+		return grassEnergy;
+	}
+
+	/**
+	 * Setter for 'grassEnergy'
+	 * @param grassEnergy
+	 */	
+	public void setGrassEnergy(int grassEnergy) 
+	{
+		this.grassEnergy = grassEnergy;
+	}
+	
+	
+	/**
+	 * Getter for 'initRabbitEnergy'
+	 * @return Initial energy a rabbit gets when it is born
+	 */	
+	public int getInitRabbitEnergy() 
+	{
+		return initRabbitEnergy;
+	}
+
+	/**
+	 * Setter for 'initRabbitEnergy'
+	 * @param initRabbitEnergy
+	 */	
+	public void setInitRabbitEnergy(int initRabbitEnergy) 
+	{
+		this.initRabbitEnergy = initRabbitEnergy;
 	}
 	
 	

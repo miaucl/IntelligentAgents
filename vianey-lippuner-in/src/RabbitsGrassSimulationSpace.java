@@ -8,6 +8,7 @@ import uchicago.src.sim.space.Object2DGrid;
 public class RabbitsGrassSimulationSpace 
 {
 	private Object2DGrid grassSpace;
+	private Object2DGrid agentSpace;
 
 	/**
 	 * Constructor of the Simulation Space with a fixed size
@@ -25,6 +26,10 @@ public class RabbitsGrassSimulationSpace
 	    		grassSpace.putObjectAt(i,j,new Integer(0));
 	    	}
 	    }
+	    
+	    // Create a space to store where are agents
+	    agentSpace = new Object2DGrid(xSize, ySize);
+
 	}
 	
 	/**
@@ -116,5 +121,57 @@ public class RabbitsGrassSimulationSpace
 	public Object2DGrid getCurrentGrassSpace()
 	{
 	    return grassSpace;
+	}
+	
+	/**
+	 * Get the current agent space
+	 * @return The current agent space
+	 */
+	public Object2DGrid getCurrentAgentSpace()
+	{
+	    return agentSpace;
+	}
+	
+	/**
+	 * Check if there is already an agent at cell x,y
+	 * @param x
+	 * @param y
+	 * @return Whether there is an agent
+	 */
+	public boolean isCellOccupied(int x, int y)
+	{
+	    return agentSpace.getObjectAt(x, y) != null;
+	}
+
+	/**
+	 * Add an agent to the space
+	 * @param agent The new agent which has not yet been added
+	 * @return Whether it could be placed
+	 */
+	public boolean addAgent(RabbitsGrassSimulationAgent agent)
+	{
+	    boolean retVal = false;
+	    int count = 0;
+	    int countLimit = 10 * agentSpace.getSizeX() * agentSpace.getSizeY(); // Define a max try limit
+
+	    while ((retVal == false) && (count < countLimit))
+	    {
+	    	int x = (int)(Math.random()*(agentSpace.getSizeX()));
+	    	int y = (int)(Math.random()*(agentSpace.getSizeY()));
+	    	if (isCellOccupied(x,y) == false)
+	    	{
+	    		agentSpace.putObjectAt(x,y,agent);
+	    		agent.setXY(x,y);
+	    		retVal = true;
+	    	}
+	    	count++;
+	    }
+	    
+	    if (count == countLimit)
+	    {
+	    	System.out.println("New agent could be be placed as no free space has been found");
+	    }
+
+	    return retVal;
 	}
 }
