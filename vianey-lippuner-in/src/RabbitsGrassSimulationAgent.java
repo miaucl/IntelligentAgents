@@ -14,10 +14,13 @@ public class RabbitsGrassSimulationAgent implements Drawable
 {
 	private int x;
 	private int y;
+	private int proposedX;
+	private int proposedY;
 	private int energy;
 	private static int IDNumber = 0;
 	private int ID;
-	  
+	private RabbitsGrassSimulationSpace grassSpace;
+ 
 	public RabbitsGrassSimulationAgent(int energy)
 	{
 	    x = -1;
@@ -59,6 +62,14 @@ public class RabbitsGrassSimulationAgent implements Drawable
 		return y;
 	}
 
+	/**
+	 * Setter for 'grassSpace'
+	 * @param grassSpace 
+	 */	
+	public void setGrassSpace(RabbitsGrassSimulationSpace s)
+	{
+	    grassSpace = s;
+	}
 	
 	/**
 	 * Getter for 'ID'
@@ -69,6 +80,15 @@ public class RabbitsGrassSimulationAgent implements Drawable
 	    return "A-" + ID;
 	}
 
+	/**
+	 * Setter for 'energy'
+	 * @param The new energy of the agent
+	 */	
+	public void setEnergy(int e)
+	{
+	    energy = e;
+	}
+	
 	/**
 	 * Getter for 'energy'
 	 * @return The current energy of the agent
@@ -85,7 +105,10 @@ public class RabbitsGrassSimulationAgent implements Drawable
 	@Override
 	public void draw(SimGraphics G)
 	{
-	    G.drawFastRect(Color.blue);
+		if(energy > 5)
+		    G.drawFastRoundRect(Color.blue);
+		else
+		    G.drawFastRoundRect(Color.red);
 	}
 
 
@@ -99,6 +122,66 @@ public class RabbitsGrassSimulationAgent implements Drawable
 	                       x + ", " + y + 
 	                       " has " + 
 	                       getEnergy() + " energy");
+	}
+	
+	/**
+	 * Move one step and get new x and y position
+	 */	
+	public void proposeNewXY()
+	{
+		// Reset 0
+		proposedX = x;
+		proposedY = y;
+		
+		// Random direction
+	    switch ((int)Math.floor(Math.random() * 4)) 
+	    {
+			case 0: // Right
+				proposedX++;
+				break;
+			case 1: // Left
+				proposedX--;
+				break;
+			case 2: // Top
+				proposedY--;
+				break;
+			case 3: // Bottom
+				proposedY++;
+				break;
+	
+			default:
+				System.out.println("Should never get here");
+				break;
+		}
+	    
+	    // Wrap around
+	    if (proposedX < 0) proposedX = grassSpace.getCurrentAgentSpace().getSizeX() - 1;
+	    else if (proposedX >= grassSpace.getCurrentAgentSpace().getSizeX()) proposedX = 0;
+	    if (proposedY < 0) proposedY = grassSpace.getCurrentAgentSpace().getSizeY() - 1;
+	    else if (proposedY >= grassSpace.getCurrentAgentSpace().getSizeY()) proposedY = 0;
+	}
+	
+	/**
+	 * Ask the space to move the agent
+	 */	
+	private boolean tryMove()
+	{
+		 return grassSpace.moveAgentAt(x, y, proposedX, proposedY);
+	}
+	
+	/**
+	 * Execute a step of the simulation
+	 */	
+	public void step()
+	{
+		proposeNewXY();
+		
+		if(tryMove())
+		{
+		      energy--;
+		}
+		
+		energy += grassSpace.eatGrassAt(x, y);
 	}
 
 }

@@ -1,4 +1,7 @@
+import java.util.ArrayList;
+
 import uchicago.src.sim.space.Object2DGrid;
+import uchicago.src.sim.util.SimUtilities;
 
 /**
  * Class that implements the simulation space of the rabbits grass simulation.
@@ -9,14 +12,19 @@ public class RabbitsGrassSimulationSpace
 {
 	private Object2DGrid grassSpace;
 	private Object2DGrid agentSpace;
+	private int grassEnergy;
+	private ArrayList<Integer> emptyGrassList;
 
 	/**
 	 * Constructor of the Simulation Space with a fixed size
 	 * @param xSize
 	 * @param ySize
 	 */	
-	public RabbitsGrassSimulationSpace(int xSize, int ySize)
+	public RabbitsGrassSimulationSpace(int xSize, int ySize, int grassEnergy)
 	{
+		// Get the param for the grass energy
+		this.grassEnergy = grassEnergy;
+		
 		// Create a space to store where is grass (init with 0=no-grass)
 		grassSpace = new Object2DGrid(xSize, ySize);
 	    for(int i = 0; i < xSize; i++)
@@ -26,7 +34,10 @@ public class RabbitsGrassSimulationSpace
 	    		grassSpace.putObjectAt(i,j,new Integer(0));
 	    	}
 	    }
-	    
+	  
+	    // Empty grass list
+	    emptyGrassList = new ArrayList<Integer>();
+
 	    // Create a space to store where are agents
 	    agentSpace = new Object2DGrid(xSize, ySize);
 
@@ -61,7 +72,7 @@ public class RabbitsGrassSimulationSpace
     	    {
     	    	for(int j = 0; j < grassSpace.getSizeY(); j++)
     	    	{
-    	    		grassSpace.putObjectAt(i,j,new Integer(1));
+    	    		grassSpace.putObjectAt(i,j,new Integer(grassEnergy));
     	    	}
     	    }
     		
@@ -97,21 +108,58 @@ public class RabbitsGrassSimulationSpace
 
     			
     	    	// Set to 1=grass
-    	    	grassSpace.putObjectAt(x, y, new Integer(1));
+    	    	grassSpace.putObjectAt(x, y, new Integer(grassEnergy));
     			
     	    }    		
     	}
+    	
+	    // Empty grass list
+	    emptyGrassList = new ArrayList<Integer>();
+
+    	// Get references of empty grass
+    	for(int i = 0; i < grassSpace.getSizeX(); i++)
+	    {
+	    	for(int j = 0; j < grassSpace.getSizeY(); j++)
+	    	{
+	    		if (((Integer)grassSpace.getObjectAt(i,j)).intValue() == 0)
+	    		{
+	    			emptyGrassList.add(new Integer(i * grassSpace.getSizeY() + j));
+	    		}
+	    	}
+	    }
+	}
+	
+	/**
+	 * Grow grass
+	 * @param grass The number of grass to grow
+	 */	
+	public void growGrass(int grass)
+	{
+		SimUtilities.shuffle(emptyGrassList);
+
+		for (int i = 0; i<grass; i++)
+		{
+			// No empty space left
+			if (emptyGrassList.isEmpty()) break;
+			
+			// Get random space to add grass
+			Integer index = emptyGrassList.remove(0);
+			int x = index / grassSpace.getSizeY();
+			int y = index % grassSpace.getSizeY();
+			
+	    	grassSpace.putObjectAt(x, y, new Integer(grassEnergy));
+		}
 	}
 	
 	/**
 	 * Check if there is grass at position x,y
 	 * @param x
 	 * @param y
-	 * @return Whether there is grass
+	 * @return The energy of the grass
 	 */
-	public boolean hasGrassAt(int x, int y)
+	public int takeGrassAt(int x, int y)
 	{
-		return ((Integer)grassSpace.getObjectAt(x,y)).intValue() == 1;
+		return ((Integer)grassSpace.getObjectAt(x,y)).intValue();
 	}
 	
 	/**
@@ -162,6 +210,7 @@ public class RabbitsGrassSimulationSpace
 	    	{
 	    		agentSpace.putObjectAt(x,y,agent);
 	    		agent.setXY(x,y);
+	            agent.setGrassSpace(this);
 	    		retVal = true;
 	    	}
 	    	count++;
@@ -172,6 +221,52 @@ public class RabbitsGrassSimulationSpace
 	    	System.out.println("New agent could be be placed as no free space has been found");
 	    }
 
+	    return retVal;
+	}
+	
+	/**
+	 * Remove an agent from the space
+	 * @param x 
+	 * @param y
+	 */
+	public void removeAgentAt(int x, int y)
+	{
+	    agentSpace.putObjectAt(x, y, null);
+	}
+	
+	/**
+	 * Eat grass at space
+	 * @param x 
+	 * @param y
+	 * @return 0 or 1, whether grass was there or not
+	 */
+	public int eatGrassAt(int x, int y)
+	{
+	    int grass = takeGrassAt(x, y);
+	    grassSpace.putObjectAt(x, y, new Integer(0));
+	    emptyGrassList.add(new Integer(x * grassSpace.getSizeY() + y));
+	    return grass;
+	}
+	
+	/**
+	 * Try to move the agent from x,y to proposedX,proposedY
+	 * @param x 
+	 * @param y
+	 * @param proposedX 
+	 * @param proposedY
+	 * @return If it worked
+	 */
+	public boolean moveAgentAt(int x, int y, int proposedX, int proposedY)
+	{
+	    boolean retVal = false;
+	    if(!isCellOccupied(proposedX, proposedY))
+	    {
+			RabbitsGrassSimulationAgent el = (RabbitsGrassSimulationAgent)agentSpace.getObjectAt(x, y);
+			removeAgentAt(x,y);
+			el.setXY(proposedX, proposedY);
+			agentSpace.putObjectAt(proposedX, proposedY, el);
+			retVal = true;
+	    }
 	    return retVal;
 	}
 }
