@@ -155,6 +155,17 @@ public class RabbitsGrassSimulationSpace
 	 * Check if there is grass at position x,y
 	 * @param x
 	 * @param y
+	 * @return Whether there is grass
+	 */
+	public boolean hasGrassAt(int x, int y)
+	{
+		return ((Integer)grassSpace.getObjectAt(x,y)).intValue() != 0;
+	}
+	
+	/**
+	 * Check how much grass is at position x,y
+	 * @param x
+	 * @param y
 	 * @return The energy of the grass
 	 */
 	public int takeGrassAt(int x, int y)
@@ -246,6 +257,23 @@ public class RabbitsGrassSimulationSpace
 	    grassSpace.putObjectAt(x, y, new Integer(0));
 	    emptyGrassList.add(new Integer(x * grassSpace.getSizeY() + y));
 	    return grass;
+	}
+	
+	/**
+	 * Counts the grass
+	 * @return The number of grass cells
+	 */
+	public int getTotalGrass()
+	{
+	    int totalGrass = 0;
+	    for(int i = 0; i < grassSpace.getSizeX(); i++)
+	    {
+	    	for(int j = 0; j < grassSpace.getSizeY(); j++)
+	      	{
+	    		if (hasGrassAt(i, j)) totalGrass++;
+	      	}
+	    }
+	    return totalGrass;
 	}
 	
 	/**

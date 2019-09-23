@@ -9,6 +9,9 @@ import uchicago.src.sim.gui.Object2DDisplay;
 import uchicago.src.sim.gui.Value2DDisplay;
 import uchicago.src.sim.engine.BasicAction;
 import uchicago.src.sim.util.SimUtilities;
+import uchicago.src.sim.analysis.DataSource;
+import uchicago.src.sim.analysis.OpenSequenceGraph;
+import uchicago.src.sim.analysis.Sequence;
 
 /**
  * Class that implements the simulation model for the rabbits grass
@@ -25,8 +28,8 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 
 	private static final int GRID_SIZE = 20;
 	private static final int NUM_INIT_RABBITS = 4;
-	private static final int NUM_INIT_GRASS = 12;
-	private static final int GRASS_GROWTH_RATE = 1;
+	private static final int NUM_INIT_GRASS = 100;
+	private static final int GRASS_GROWTH_RATE = 5;
 	private static final int BIRTH_THRESHOLD = 20;
 	private static final int GRASS_ENERGY = 5;
 	private static final int INIT_RABBIT_ENERGY = 10;
@@ -47,6 +50,38 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
   	private int grassEnergy = GRASS_ENERGY;
   	private int initRabbitEnergy = INIT_RABBIT_ENERGY;
 
+  	private OpenSequenceGraph amoutInSpace;
+
+ 	// Sequence measuring the total amount of grass
+    class GrassInSpace implements DataSource, Sequence 
+    {
+
+    	public Object execute() 
+    	{
+    		return new Double(getSValue());
+    	}
+
+    	public double getSValue() 
+    	{
+    		return (double)grassSpace.getTotalGrass();
+    	}
+    }
+    
+ 	// Sequence measuring the total amount of rabbits
+    class RabbitsInSpace implements DataSource, Sequence 
+    {
+
+    	public Object execute() 
+    	{
+    		return new Double(getSValue());
+    	}
+
+    	public double getSValue() 
+    	{
+    		return (double)countLivingAgents();
+    	}
+    }
+    
 	public static void main(String[] args) 
 	{
 		
@@ -81,9 +116,21 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 		}
 	    displaySurf = null;
 
+	    
+	    if (amoutInSpace != null)
+	    {
+	    	amoutInSpace.dispose();
+	    }
+	    amoutInSpace = null;
+	    	    
+	    // Create displays
 	    displaySurf = new DisplaySurface(this, "Rabbits Grass Model Window 1");
+	    amoutInSpace = new OpenSequenceGraph("Amount In Space", this);
 
+
+	    // Register displays
 	    registerDisplaySurface("Rabbits Grass Model Window 1", displaySurf);
+	    registerMediaProducer("Plot", amoutInSpace);
 	}
 
 
@@ -99,6 +146,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    buildDisplay();
 	    
 	    displaySurf.display();
+	    amoutInSpace.display();
 	}
 
 	/**
@@ -159,6 +207,17 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 		}
 
 		schedule.scheduleActionAtInterval(10, new RabbitCountLiving());
+		
+		class AmountInSpace extends BasicAction 
+		{	
+			public void execute()
+			{
+				amoutInSpace.step();
+			}
+	    }
+
+		schedule.scheduleActionAtInterval(10, new AmountInSpace());
+	
 	}
 	
 	/**
@@ -181,6 +240,9 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 
 	    displaySurf.addDisplayableProbeable(displayGrass, "Grass");
 	    displaySurf.addDisplayableProbeable(displayAgents, "Agents");
+
+	    amoutInSpace.addSequence("Grass In Space", new GrassInSpace());
+	    amoutInSpace.addSequence("Rabbits In Space", new RabbitsInSpace());
 
 	}
 
@@ -301,9 +363,9 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    System.out.println("Number of living agents is: " + livingAgents);
 
 	    return livingAgents;
-	  }
+	}
 	
-	
+
 
 	/**
 	 * Getter for 'gridSize'
