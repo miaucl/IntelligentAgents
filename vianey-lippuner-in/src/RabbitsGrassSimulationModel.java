@@ -35,6 +35,9 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	private static final int BIRTH_THRESHOLD = 20;
 	private static final int GRASS_ENERGY = 5;
 	private static final int INIT_RABBIT_ENERGY = 10;
+	
+	private static final int NUMBER_OF_BINS = 10;
+	private static final int LOWER_BOUNDARY = -1;
 
 	private Schedule schedule;
   
@@ -144,7 +147,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    // Create displays
 	    displaySurf = new DisplaySurface(this, "Rabbits Grass Model Window 1");
 	    amoutInSpace = new OpenSequenceGraph("Amount In Space", this);
-	    rabbitEnergyDistribution = new OpenHistogram("Rabbit Energy", 10, -1);
+	    rabbitEnergyDistribution = new OpenHistogram("Rabbit Energy", NUMBER_OF_BINS, LOWER_BOUNDARY);
 	    rabbitEnergyDistribution.setYRange(0, 1);
 
 
