@@ -181,10 +181,13 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	private void buildModel()
 	{
 		System.out.println("Build model");
+		if (gridSize <= 0)
+		{
+			gridSize = GRID_SIZE;
+		}
+		
 	    grassSpace = new RabbitsGrassSimulationSpace(gridSize, gridSize, grassEnergy);
-		System.out.println("1");
 	    grassSpace.spreadGrass(numInitGrass);
-		System.out.println("2");
 
 	    for(int i = 0; i < numInitRabbits; i++)
 	    {
