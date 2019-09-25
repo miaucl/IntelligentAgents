@@ -88,7 +88,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
     	}
     }
     
-    class rabbitEnergy implements BinDataSource
+    class RabbitEnergy implements BinDataSource
     {
         public double getBinValue(Object o) 
         {
@@ -148,7 +148,6 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    displaySurf = new DisplaySurface(this, "Rabbits Grass Model Window 1");
 	    amoutInSpace = new OpenSequenceGraph("Amount In Space", this);
 	    rabbitEnergyDistribution = new OpenHistogram("Rabbit Energy", NUMBER_OF_BINS, LOWER_BOUNDARY);
-	    rabbitEnergyDistribution.setYRange(0, 1);
 
 
 	    // Register displays
@@ -245,14 +244,14 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 
 		schedule.scheduleActionAtInterval(10, new AmountInSpace());
 		
-		class UpdaterabbitEnergy extends BasicAction {
+		class UpdateRabbitEnergy extends BasicAction {
 		      public void execute()
 		      {
 		    	  rabbitEnergyDistribution.step();
 		      }
 	    }
 
-		    schedule.scheduleActionAtInterval(10, new UpdaterabbitEnergy());
+	    schedule.scheduleActionAtInterval(10, new UpdateRabbitEnergy());
 	
 	}
 	
@@ -280,7 +279,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    amoutInSpace.addSequence("Grass In Space", new GrassInSpace());
 	    amoutInSpace.addSequence("Rabbits In Space", new RabbitsInSpace());
 	    
-	    rabbitEnergyDistribution.createHistogramItem("Rabbit Energy",agentList,new rabbitEnergy());
+	    rabbitEnergyDistribution.createHistogramItem("Rabbit Energy",agentList,new RabbitEnergy());
 	}
 
 	/**
