@@ -9,7 +9,9 @@ import uchicago.src.sim.gui.Object2DDisplay;
 import uchicago.src.sim.gui.Value2DDisplay;
 import uchicago.src.sim.engine.BasicAction;
 import uchicago.src.sim.util.SimUtilities;
+import uchicago.src.sim.analysis.BinDataSource;
 import uchicago.src.sim.analysis.DataSource;
+import uchicago.src.sim.analysis.OpenHistogram;
 import uchicago.src.sim.analysis.OpenSequenceGraph;
 import uchicago.src.sim.analysis.Sequence;
 
@@ -51,6 +53,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
   	private int initRabbitEnergy = INIT_RABBIT_ENERGY;
 
   	private OpenSequenceGraph amoutInSpace;
+    private OpenHistogram rabbitEnergyDistribution;
 
  	// Sequence measuring the total amount of grass
     class GrassInSpace implements DataSource, Sequence 
@@ -80,6 +83,15 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
     	{
     		return (double)countLivingAgents();
     	}
+    }
+    
+    class rabbitEnergy implements BinDataSource
+    {
+        public double getBinValue(Object o) 
+        {
+        	RabbitsGrassSimulationAgent agent = (RabbitsGrassSimulationAgent)o;
+          return (double)agent.getEnergy();
+        }
     }
     
 	public static void main(String[] args) 
@@ -122,10 +134,18 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    	amoutInSpace.dispose();
 	    }
 	    amoutInSpace = null;
+	    
+	    if (rabbitEnergyDistribution != null)
+	    {
+	    	rabbitEnergyDistribution.dispose();
+	    }
+	    rabbitEnergyDistribution = null;
 	    	    
 	    // Create displays
 	    displaySurf = new DisplaySurface(this, "Rabbits Grass Model Window 1");
 	    amoutInSpace = new OpenSequenceGraph("Amount In Space", this);
+	    rabbitEnergyDistribution = new OpenHistogram("Rabbit Energy", 10, -1);
+	    rabbitEnergyDistribution.setYRange(0, 1);
 
 
 	    // Register displays
@@ -147,6 +167,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    
 	    displaySurf.display();
 	    amoutInSpace.display();
+	    rabbitEnergyDistribution.display();
 	}
 
 	/**
@@ -217,6 +238,15 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    }
 
 		schedule.scheduleActionAtInterval(10, new AmountInSpace());
+		
+		class UpdaterabbitEnergy extends BasicAction {
+		      public void execute()
+		      {
+		    	  rabbitEnergyDistribution.step();
+		      }
+	    }
+
+		    schedule.scheduleActionAtInterval(10, new UpdaterabbitEnergy());
 	
 	}
 	
@@ -243,7 +273,8 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 
 	    amoutInSpace.addSequence("Grass In Space", new GrassInSpace());
 	    amoutInSpace.addSequence("Rabbits In Space", new RabbitsInSpace());
-
+	    
+	    rabbitEnergyDistribution.createHistogramItem("Rabbit Energy",agentList,new rabbitEnergy());
 	}
 
 	/**
