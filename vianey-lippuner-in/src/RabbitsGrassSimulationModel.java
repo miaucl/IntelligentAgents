@@ -367,7 +367,6 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    	if(el.getEnergy() > birthThreshold)
 	    	{
 	    		RabbitsGrassSimulationAgent newAgent = addNewAgent();
-	    		// TODO Maybe add functionality to put it near the existing agent
 	    		if (newAgent != null) // Care if the agent could be added to the space
 	    		{
 	    			newAgent.setEnergy(el.getEnergy() / 2); // New agent
