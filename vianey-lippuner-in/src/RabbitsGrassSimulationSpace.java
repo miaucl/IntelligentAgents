@@ -85,7 +85,8 @@ public class RabbitsGrassSimulationSpace
     	    	{
     	    		x = (int)(Math.random()*(grassSpace.getSizeX()));
     			 	y = (int)(Math.random()*(grassSpace.getSizeY()));
-    	    	} while (((Integer)grassSpace.getObjectAt(x,y)).intValue() < 1);
+    	    	} while (((Integer)grassSpace.getObjectAt(x,y)).intValue() < 1); 
+    	    	// Worst case statistically 2 times per grass cell O(nInitGrass)
 
     			
     	    	// Set to 0=no-grass
@@ -105,6 +106,7 @@ public class RabbitsGrassSimulationSpace
     	    		x = (int)(Math.random()*(grassSpace.getSizeX()));
     			 	y = (int)(Math.random()*(grassSpace.getSizeY()));
     	    	} while (((Integer)grassSpace.getObjectAt(x,y)).intValue() > 0);
+    	    	// Worst case statistically 2 times per grass cell O(nInitGrass)
 
     			
     	    	// Set to 1=grass
@@ -135,7 +137,7 @@ public class RabbitsGrassSimulationSpace
 	 */	
 	public void growGrass(int grass)
 	{
-		SimUtilities.shuffle(emptyGrassList);
+		SimUtilities.shuffle(emptyGrassList); // O(nGridSize^2)
 
 		for (int i = 0; i<grass; i++)
 		{
@@ -143,7 +145,7 @@ public class RabbitsGrassSimulationSpace
 			if (emptyGrassList.isEmpty()) break;
 			
 			// Get random space to add grass
-			Integer index = emptyGrassList.remove(0);
+			Integer index = emptyGrassList.remove(emptyGrassList.size() - 1); // O(1)
 			int x = index / grassSpace.getSizeY();
 			int y = index % grassSpace.getSizeY();
 			
