@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Class-Path: . lib/jdom.jar lib/repast.jar lib/colt.jar lib/plot.jar li
+ b/jsolver.jar lib/commons-math-1.1.jar
+Sealed: true
+Main-Class: logist.LogistPlatform
+
