@@ -9,7 +9,9 @@ import uchicago.src.sim.gui.Object2DDisplay;
 import uchicago.src.sim.gui.Value2DDisplay;
 import uchicago.src.sim.engine.BasicAction;
 import uchicago.src.sim.util.SimUtilities;
+import uchicago.src.sim.analysis.BinDataSource;
 import uchicago.src.sim.analysis.DataSource;
+import uchicago.src.sim.analysis.OpenHistogram;
 import uchicago.src.sim.analysis.OpenSequenceGraph;
 import uchicago.src.sim.analysis.Sequence;
 
@@ -33,6 +35,9 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	private static final int BIRTH_THRESHOLD = 20;
 	private static final int GRASS_ENERGY = 5;
 	private static final int INIT_RABBIT_ENERGY = 10;
+	
+	private static final int NUMBER_OF_BINS = 10;
+	private static final int LOWER_BOUNDARY = -1;
 
 	private Schedule schedule;
   
@@ -51,6 +56,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
   	private int initRabbitEnergy = INIT_RABBIT_ENERGY;
 
   	private OpenSequenceGraph amoutInSpace;
+    private OpenHistogram rabbitEnergyDistribution;
 
  	// Sequence measuring the total amount of grass
     class GrassInSpace implements DataSource, Sequence 
@@ -80,6 +86,15 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
     	{
     		return (double)countLivingAgents();
     	}
+    }
+    
+    class RabbitEnergy implements BinDataSource
+    {
+        public double getBinValue(Object o) 
+        {
+        	RabbitsGrassSimulationAgent agent = (RabbitsGrassSimulationAgent)o;
+          return (double)agent.getEnergy();
+        }
     }
     
 	public static void main(String[] args) 
@@ -122,10 +137,17 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    	amoutInSpace.dispose();
 	    }
 	    amoutInSpace = null;
+	    
+	    if (rabbitEnergyDistribution != null)
+	    {
+	    	rabbitEnergyDistribution.dispose();
+	    }
+	    rabbitEnergyDistribution = null;
 	    	    
 	    // Create displays
 	    displaySurf = new DisplaySurface(this, "Rabbits Grass Model Window 1");
 	    amoutInSpace = new OpenSequenceGraph("Amount In Space", this);
+	    rabbitEnergyDistribution = new OpenHistogram("Rabbit Energy", NUMBER_OF_BINS, LOWER_BOUNDARY);
 
 
 	    // Register displays
@@ -147,6 +169,7 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    
 	    displaySurf.display();
 	    amoutInSpace.display();
+	    rabbitEnergyDistribution.display();
 	}
 
 	/**
@@ -157,10 +180,13 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	private void buildModel()
 	{
 		System.out.println("Build model");
+		if (gridSize <= 0)
+		{
+			gridSize = GRID_SIZE;
+		}
+		
 	    grassSpace = new RabbitsGrassSimulationSpace(gridSize, gridSize, grassEnergy);
-		System.out.println("1");
 	    grassSpace.spreadGrass(numInitGrass);
-		System.out.println("2");
 
 	    for(int i = 0; i < numInitRabbits; i++)
 	    {
@@ -217,6 +243,15 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    }
 
 		schedule.scheduleActionAtInterval(10, new AmountInSpace());
+		
+		class UpdateRabbitEnergy extends BasicAction {
+		      public void execute()
+		      {
+		    	  rabbitEnergyDistribution.step();
+		      }
+	    }
+
+	    schedule.scheduleActionAtInterval(10, new UpdateRabbitEnergy());
 	
 	}
 	
@@ -243,7 +278,8 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 
 	    amoutInSpace.addSequence("Grass In Space", new GrassInSpace());
 	    amoutInSpace.addSequence("Rabbits In Space", new RabbitsInSpace());
-
+	    
+	    rabbitEnergyDistribution.createHistogramItem("Rabbit Energy",agentList,new RabbitEnergy());
 	}
 
 	/**
@@ -336,7 +372,6 @@ public class RabbitsGrassSimulationModel extends SimModelImpl
 	    	if(el.getEnergy() > birthThreshold)
 	    	{
 	    		RabbitsGrassSimulationAgent newAgent = addNewAgent();
-	    		// TODO Maybe add functionality to put it near the existing agent
 	    		if (newAgent != null) // Care if the agent could be added to the space
 	    		{
 	    			newAgent.setEnergy(el.getEnergy() / 2); // New agent
