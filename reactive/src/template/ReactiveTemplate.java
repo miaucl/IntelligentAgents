@@ -19,6 +19,7 @@ public class ReactiveTemplate implements ReactiveBehavior
 
 	private Random random;
 	private double pPickup;
+	private int numCities;
 	private int numActions;
 	private int numStates;
 	private Agent myAgent;
@@ -39,43 +40,52 @@ public class ReactiveTemplate implements ReactiveBehavior
 		Double discount = agent.readProperty("discount-factor", Double.class,
 				0.95);
 
-		int sizeCities = topology.size();
-
 		this.random = new Random();
 		this.pPickup = discount;
-		this.numActions = sizeCities * 2;
-		this.numStates = sizeCities * 2;
+		this.numCities = topology.size();
+		this.numActions = numCities + 1; // Last action is pick
+		this.numStates = numCities * 2;
 		this.myAgent = agent;	
 		
-		R = new double[sizeCities*2][sizeCities*2]; // Init with rewards
-		T = new double[sizeCities*2][sizeCities*2][sizeCities*2]; // Init with probabilities
-		Q = new double[sizeCities*2][sizeCities*2]; // Init at zero
-		V = new double[sizeCities*2]; // Init with random values
-		B = new int[sizeCities*2]; // Init with random actions
+		R = new double[numStates][numActions]; // Init with rewards
+		T = new double[numStates][numActions][numStates]; // Init with probabilities
+		Q = new double[numStates][numActions]; // Init at zero
+		V = new double[numStates]; // Init with random values
+		B = new int[numStates]; // Init with random actions
 		
 		// Init R
-		for (int i = 0; i < R.length; i++)
+		for (int i = 0; i < R.length; i++) // Loop all states
 		{
-			int cityIndex = i%sizeCities;
-			boolean availablePacket = i>=sizeCities;
-			City source = topology.cities().get(cityIndex);
+			int cityIndex = i % numCities; // The source city in the state
+			boolean availablePacket = (i >= numCities); // The flag for a package in the state
+			City source = topology.cities().get(cityIndex); // The city reference of the state
 			
-			for (int j = 0; j < R[i].length; j++)
+			for (int j = 0; j < R[i].length; j++) // Loop all actions
 			{
-				int actionIndex = j%sizeCities;
-				boolean actionPick = j>=sizeCities;
+				int actionIndex = j % numCities; // The destination city of the action
+				boolean actionPick = (j >= numCities); // Whether the action is pick instead of move
 				
-				City dest = topology.cities().get(actionIndex); // Get the destination of the delivery
+				R[i][j]= Double.NEGATIVE_INFINITY; // Init the reward with -inf as this represents all the virtual edges which are forbidden
+
 				
-				R[i][j]= Double.NEGATIVE_INFINITY;
-				
-				if (availablePacket && actionPick) //if packet available and pickAndDeliver action
+				if (availablePacket && actionPick) // Use the average reward for the pick action with packet
 				{
-					R[i][j]=td.reward(source, dest);
+					R[i][j] = 0; // Init the average reward for a pick action at the source
+					
+					for (int k = 0; k<numCities; k++) // Loop all destination cities
+					{
+						R[i][j] += td.reward(source, topology.cities().get(k)); // Add the reward for a package from source to dest
+					}
+					R[i][j] /= numCities; // Make the average of all rewards assuming no non-empty city list
 				}
-				else if(source.hasNeighbor(dest)) //Moving is free
+				else // Move action
 				{
-					R[i][j]=0;	//-1?
+					City dest = topology.cities().get(actionIndex); // Get the destination of the delivery
+					
+					if(source.hasNeighbor(dest)) // Valid edge (not virtual)
+					{
+						R[i][j]=0;	//Moving is free, should it be? TODO Maybe set to -1
+					}
 				}
 			} 
 		} 
@@ -85,43 +95,56 @@ public class ReactiveTemplate implements ReactiveBehavior
 		System.out.println("R=" + Arrays.deepToString(R));
 		
 		// Init T
-		for (int fromState = 0; fromState < T.length; fromState++)
+		for (int fromState = 0; fromState < T.length; fromState++) // Loop all source cities from the state
 		{			
-			int fromStateCityIndex = fromState % sizeCities;
-			City fromStateCity = topology.cities().get(fromStateCityIndex);
-			//boolean availablePacketFrom = fromState>=sizeCities;
+			int fromStateCityIndex = fromState % numCities; // The source city in the state
+			boolean availablePacketFrom = (fromState >= numCities); // The flag for a package in the state
+			City fromStateCity = topology.cities().get(fromStateCityIndex); // The city reference of the state
 			
-			for (int action = 0; action < T[fromState].length; action++)
+			for (int action = 0; action < T[fromState].length; action++) // Loop all the actions
 			{
-				int actionCityIndex = action % sizeCities;
-				
-				for (int toState = 0; toState < T[fromState][action].length; toState++)
+				int actionCityIndex = action % numCities; // The source city of the action
+				boolean actionPick = (action >= numCities); // Whether the action is pick
+
+				for (int toState = 0; toState < T[fromState][action].length; toState++) // Loop all destination cities
 				{
-					int toStateCityIndex = toState % sizeCities;
-					City toStateCity = topology.cities().get(toStateCityIndex);
-					boolean availablePacketTo = toState>=sizeCities;
+					int toStateCityIndex = toState % numCities; // The destination city in the state
+					boolean availablePacketTo = (toState >= numCities); // The flag for a package in the state
+					City toStateCity = topology.cities().get(toStateCityIndex); // The city reference of the state
 					
-					// The destination of an action is 100%, so 0% for every other city
-					if (!fromStateCity.hasNeighbor(toStateCity) || toStateCityIndex != actionCityIndex) 
-					{
-						T[fromState][action][toState] = 0;
+					if (availablePacketFrom && actionPick) // Pick action, where the probability of arriving at a given point depends on the probabilities
+					{						
+						if (availablePacketTo) // Probability that there is a package at the destination and the current package goes there
+						{
+							T[fromState][action][toState] = td.probability(fromStateCity, toStateCity) * (1 - td.probability(toStateCity, null)); // Get the probability of arriving in that exact state
+						}
+						else // Probability that there is no package at the destination and the current package goes there
+						{
+							T[fromState][action][toState] = td.probability(fromStateCity, toStateCity) * td.probability(toStateCity, null); // Get the probability of arriving in that exact state
+						}	
+						// WARNING: The move row does not add up to =1, as it is the sum of the product of p(task A to B) * p(new task there) for all cells does not necessarily equal to 1 --> TODO Normalization if needed
 					}
-					else // Valid move
+					else // Move action
 					{
-						if (availablePacketTo) // Probability picking there is a package
+						// The destination of a move action is 100%, so 0% for every other city
+						if (fromStateCity.hasNeighbor(toStateCity) && actionCityIndex == toStateCityIndex)  // Valid move
 						{
-							T[fromState][action][toState] = 1 - td.probability(toStateCity, null);
-						}
-						else // Probability picking and there is no package
-						{
-							T[fromState][action][toState] = td.probability(toStateCity, null);
-						}
-					}			
+							if (availablePacketTo) // Probability that there is a package at the destination
+							{
+								T[fromState][action][toState] = 1 * (1 - td.probability(toStateCity, null)); // Get the probability of arriving in that exact state
+							}
+							else // Probability that there is no package at the destination
+							{
+								T[fromState][action][toState] = 1 * td.probability(toStateCity, null); // Get the probability of arriving in that exact state
+							}
+						}		
+					}					
 				}
 			}
 		}
 		
 		System.out.println("T=" + Arrays.deepToString(T));
+		System.out.println("Tn=" + Arrays.deepToString(T[11])); // Possible actions and future states for current state n
 		
 		// Init Q
 		
@@ -131,7 +154,7 @@ public class ReactiveTemplate implements ReactiveBehavior
 		// Init V
 		for (int i = 0; i < V.length; i++) 
 		{
-			V[i] = random.nextDouble() * 1; // TODO Need a scaling factor
+			V[i] = random.nextDouble() * 1; // Get random value // TODO Need a scaling factor
 		}
 
 		System.out.println("V=" + Arrays.toString(V));
@@ -139,7 +162,7 @@ public class ReactiveTemplate implements ReactiveBehavior
 		// Init B
 		for (int i = 0; i < B.length; i++) 
 		{
-			B[i] = random.nextInt(numActions);
+			B[i] = random.nextInt(numActions); // Get random action
 		}
 
 		System.out.println("B=" + Arrays.toString(B));
