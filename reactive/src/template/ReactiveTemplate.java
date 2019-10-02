@@ -1,5 +1,6 @@
 package template;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -31,10 +32,16 @@ public class ReactiveTemplate implements ReactiveBehavior
 	private double[] V;
 	private int[] B;
 	
+	private ArrayList<City> cityList;
+	
+	private int MAX_ITERATION = 1000000;
+	
 
 	@Override
-	public void setup(Topology topology, TaskDistribution td, Agent agent) {
+	public void setup(Topology topology, TaskDistribution td, Agent agent) 
+	{
 
+		// TODO Report: Get influence of the discount-factor to the time of convergence
 		// Reads the discount factor from the agents.xml file.
 		// If the property is not present it defaults to 0.95
 		Double discount = agent.readProperty("discount-factor", Double.class,
@@ -46,13 +53,16 @@ public class ReactiveTemplate implements ReactiveBehavior
 		this.numActions = numCities + 1; // Last action is pick
 		this.numStates = numCities * 2;
 		this.myAgent = agent;	
+			
+		
 		
 		R = new double[numStates][numActions]; // Init with rewards
 		T = new double[numStates][numActions][numStates]; // Init with probabilities
 		Q = new double[numStates][numActions]; // Init at zero
 		V = new double[numStates]; // Init with random values
 		B = new int[numStates]; // Init with random actions
-		
+		cityList = new ArrayList<City>(topology.cities());
+				
 		// Init R
 		for (int i = 0; i < R.length; i++) // Loop all states
 		{
@@ -78,13 +88,13 @@ public class ReactiveTemplate implements ReactiveBehavior
 					}
 					R[i][j] /= numCities; // Make the average of all rewards assuming no non-empty city list
 				}
-				else // Move action
+				else if (!actionPick) // Move action
 				{
 					City dest = topology.cities().get(actionIndex); // Get the destination of the delivery
 					
-					if(source.hasNeighbor(dest)) // Valid edge (not virtual)
+					if(source.hasNeighbor(dest) && source != dest) // Valid edge (not virtual)
 					{
-						R[i][j]=0;	//Moving is free, should it be? TODO Maybe set to -1
+						R[i][j]=0;	// Moving is free, should it be? TODO Maybe set to -1
 					}
 				}
 			} 
@@ -122,7 +132,7 @@ public class ReactiveTemplate implements ReactiveBehavior
 						{
 							T[fromState][action][toState] = td.probability(fromStateCity, toStateCity) * td.probability(toStateCity, null); // Get the probability of arriving in that exact state
 						}	
-						// WARNING: The move row does not add up to =1, as it is the sum of the product of p(task A to B) * p(new task there) for all cells does not necessarily equal to 1 --> TODO Normalization if needed
+						// WARNING: The move row does not add up to =1, as it is the sum of the product of p1(task A to B) * p2(new task at B) for all cells does not necessarily equal to 1 (as sum(p1(*) < 1)) --> TODO Normalization if needed
 					}
 					else // Move action
 					{
@@ -144,17 +154,17 @@ public class ReactiveTemplate implements ReactiveBehavior
 		}
 		
 		System.out.println("T=" + Arrays.deepToString(T));
-		System.out.println("Tn=" + Arrays.deepToString(T[11])); // Possible actions and future states for current state n
+		System.out.println("Tn=" + Arrays.deepToString(T[1])); // Possible actions and future states for current state n
 		
 		// Init Q
-		
+				
 		
 		System.out.println("Q=" + Arrays.deepToString(Q));
 
 		// Init V
 		for (int i = 0; i < V.length; i++) 
 		{
-			V[i] = random.nextDouble() * 1; // Get random value // TODO Need a scaling factor
+			V[i] = random.nextDouble() * 100000; // Get random value // TODO Need a scaling factor
 		}
 
 		System.out.println("V=" + Arrays.toString(V));
@@ -166,26 +176,115 @@ public class ReactiveTemplate implements ReactiveBehavior
 		}
 
 		System.out.println("B=" + Arrays.toString(B));
-}
+		
+		
+		
+		
+		// Start offboard algorithm
+		int N = 0;
+		while (true) // TODO stopping criteria
+		{
+			for (int i = 0; i<numStates; i++)
+			{
+				double VmaxTemp = Double.NEGATIVE_INFINITY;
+				int BmaxTemp = 0;
+				
+				for (int j = 0; j<numActions; j++)
+				{
+					Q[i][j] = R[i][j];
+					for (int k = 0; k<numStates; k++)		 // TODO optimize???
+					{
+						Q[i][j] += discount * T[i][j][k] * V[k];
+					}
+					if (VmaxTemp < Q[i][j])
+					{
+						VmaxTemp = Q[i][j];
+						BmaxTemp = j;
+					}
+				}
+				V[i] = VmaxTemp;
+				B[i] = BmaxTemp;
+			}
+			
+
+			if (N++ > MAX_ITERATION) // Ultimate stop criteria
+			{
+				System.out.printf("Stopped algorithm after MAX iterations: %d\n", MAX_ITERATION);
+				break;
+			}
+		}
+		
+	
+		System.out.println("V=" + Arrays.toString(V));
+		System.out.println("B=" + Arrays.toString(B));
+
+	}
 	
 
 
 
 	@Override
-	public Action act(Vehicle vehicle, Task availableTask) {
+	public Action act(Vehicle vehicle, Task availableTask) 
+	{
+		System.out.printf("State: City(%d), Task(%d) ", cityList.indexOf(vehicle.getCurrentCity()), availableTask != null ? 1 : 0);
 		Action action;
 
-		if (availableTask == null || random.nextDouble() > pPickup) {
+		if (availableTask == null)
+		{
+			int actionIndex = B[cityList.indexOf(vehicle.getCurrentCity())];
+			if (actionIndex == numCities) 
+			{
+				System.out.print("Should never get here!");
+				action = new Pickup(availableTask);
+				System.out.printf("\n");
+			}
+			else
+			{
+				City nextCity = cityList.get(actionIndex);
+				action = new Move(nextCity);
+				System.out.printf("=> Move(%d) [reward=%d]\n", actionIndex, 0);
+			}
+		}
+		else
+		{
+			int actionIndex = B[numCities + cityList.indexOf(vehicle.getCurrentCity())];
+			if (actionIndex == numCities) 
+			{
+				action = new Pickup(availableTask);
+				System.out.printf("=> Pick [reward=%d]\n", availableTask.reward);
+			}
+			else
+			{
+				City nextCity = cityList.get(actionIndex);
+				action = new Move(nextCity);
+				System.out.printf("=> Move(%d) [reward=%d]\n", actionIndex, 0);
+			}
+			
+		}
+		
+		
+		
+		// TODO Print graph of accumulated graph reward
+		
+		/*
+		Action action;
+
+		if (availableTask == null || random.nextDouble() > pPickup) 
+		{
 			City currentCity = vehicle.getCurrentCity();
 			action = new Move(currentCity.randomNeighbor(random));
-		} else {
+		} 
+		else 
+		{
 			action = new Pickup(availableTask);
 		}
 		
-		if (numActions >= 1) {
+		if (numActions >= 1) 
+		{
 			System.out.println("The total profit after "+numActions+" actions is "+myAgent.getTotalProfit()+" (average profit: "+(myAgent.getTotalProfit() / (double)numActions)+")");
 		}
 		numActions++;
+		*/
 		
 		return action;
 	}
