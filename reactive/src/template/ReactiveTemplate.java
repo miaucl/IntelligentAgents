@@ -1,4 +1,4 @@
-package template;
+package src.template;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,9 +21,11 @@ public class ReactiveTemplate implements ReactiveBehavior
 	private Random random;
 	private double pPickup;
 	private int numCities;
+	private int nbActions;
 	private int numActions;
 	private int numStates;
 	private Agent myAgent;
+
 
 	private double[][] R;
 	private double[][][] T;
@@ -34,19 +36,20 @@ public class ReactiveTemplate implements ReactiveBehavior
 	
 	private ArrayList<City> cityList;
 	
-	private int MAX_ITERATION = 1000000;
-	
+	private final int MAX_ITERATION = 1000000;
+	private final double EPSILON = 0;
+	private final double DEFAULT_DISCOUNT = 0.95;
 
 	@Override
 	public void setup(Topology topology, TaskDistribution td, Agent agent) 
 	{
-
-		// TODO Report: Get influence of the discount-factor to the time of convergence
 		// Reads the discount factor from the agents.xml file.
 		// If the property is not present it defaults to 0.95
 		Double discount = agent.readProperty("discount-factor", Double.class,
-				0.95);
+				DEFAULT_DISCOUNT);
+		
 
+		this.nbActions = 0;
 		this.random = new Random();
 		this.pPickup = discount;
 		this.numCities = topology.size();
@@ -54,14 +57,15 @@ public class ReactiveTemplate implements ReactiveBehavior
 		this.numStates = numCities * 2;
 		this.myAgent = agent;	
 			
-		
-		
+
 		R = new double[numStates][numActions]; // Init with rewards
 		T = new double[numStates][numActions][numStates]; // Init with probabilities
 		Q = new double[numStates][numActions]; // Init at zero
 		V = new double[numStates]; // Init with random values
 		B = new int[numStates]; // Init with random actions
 		cityList = new ArrayList<City>(topology.cities());
+		
+		double maxReward = Double.NEGATIVE_INFINITY;
 				
 		// Init R
 		for (int i = 0; i < R.length; i++) // Loop all states
@@ -94,8 +98,13 @@ public class ReactiveTemplate implements ReactiveBehavior
 					
 					if(source.hasNeighbor(dest) && source != dest) // Valid edge (not virtual)
 					{
-						R[i][j]=0;	// Moving is free, should it be? TODO Maybe set to -1
+						R[i][j]= 0;	// Moving is free, should it be?
 					}
+				}
+				
+				if (R[i][j] > maxReward)
+				{
+					maxReward = R[i][j];
 				}
 			} 
 		} 
@@ -155,16 +164,11 @@ public class ReactiveTemplate implements ReactiveBehavior
 		
 		System.out.println("T=" + Arrays.deepToString(T));
 		System.out.println("Tn=" + Arrays.deepToString(T[1])); // Possible actions and future states for current state n
-		
-		// Init Q
-				
-		
-		System.out.println("Q=" + Arrays.deepToString(Q));
 
 		// Init V
 		for (int i = 0; i < V.length; i++) 
 		{
-			V[i] = random.nextDouble() * 100000; // Get random value // TODO Need a scaling factor
+			V[i] = random.nextDouble() * maxReward; // Get random value, scaling between 0 and maxReward
 		}
 
 		System.out.println("V=" + Arrays.toString(V));
@@ -182,12 +186,19 @@ public class ReactiveTemplate implements ReactiveBehavior
 		
 		// Start offboard algorithm
 		int N = 0;
-		while (true) // TODO stopping criteria
+		boolean BhasChanged = true;
+		boolean Vconverged = false;
+		
+		do
 		{
+			int Bsame = 0;
+			int Vconverge = 0;
+			
 			for (int i = 0; i<numStates; i++)
 			{
 				double VmaxTemp = Double.NEGATIVE_INFINITY;
 				int BmaxTemp = 0;
+				
 				
 				for (int j = 0; j<numActions; j++)
 				{
@@ -202,32 +213,61 @@ public class ReactiveTemplate implements ReactiveBehavior
 						BmaxTemp = j;
 					}
 				}
+				
+				
+				if (Math.abs(V[i]- VmaxTemp) <= EPSILON)
+				{	
+					Vconverge++;
+				}
+						
 				V[i] = VmaxTemp;
-				B[i] = BmaxTemp;
+				
+				if (B[i] != BmaxTemp)
+				{
+					B[i] = BmaxTemp;
+				}
+				else
+				{
+					Bsame++;
+				}
+				
 			}
 			
-
+			System.out.println("Vconverge=" +Vconverge);
+	
+			if (Bsame == numStates)
+			{
+				BhasChanged = false;
+			}
+			
+			if (Vconverge == numStates)
+			{
+				Vconverged = true;
+			}
+			
 			if (N++ > MAX_ITERATION) // Ultimate stop criteria
 			{
 				System.out.printf("Stopped algorithm after MAX iterations: %d\n", MAX_ITERATION);
 				break;
 			}
-		}
+
+			
+		} while (BhasChanged || !Vconverged);
 		
-	
+		System.out.println("N=" + N);
 		System.out.println("V=" + Arrays.toString(V));
 		System.out.println("B=" + Arrays.toString(B));
+	
 
 	}
 	
 
-
-
 	@Override
 	public Action act(Vehicle vehicle, Task availableTask) 
 	{
-		System.out.printf("State: City(%d), Task(%d) ", cityList.indexOf(vehicle.getCurrentCity()), availableTask != null ? 1 : 0);
-		Action action;
+		nbActions++;
+		
+		Action action = null;
 
 		if (availableTask == null)
 		{
@@ -262,30 +302,12 @@ public class ReactiveTemplate implements ReactiveBehavior
 			
 		}
 		
-		
-		
-		// TODO Print graph of accumulated graph reward
-		
-		/*
-		Action action;
+		if (nbActions % 1000 == 0) 
+		{
+			System.out.println("The total profit after "+nbActions+" actions is "+myAgent.getTotalProfit()+" (average profit: "+(myAgent.getTotalProfit() / (double)nbActions)+")");
+		}
 
-		if (availableTask == null || random.nextDouble() > pPickup) 
-		{
-			City currentCity = vehicle.getCurrentCity();
-			action = new Move(currentCity.randomNeighbor(random));
-		} 
-		else 
-		{
-			action = new Pickup(availableTask);
-		}
-		
-		if (numActions >= 1) 
-		{
-			System.out.println("The total profit after "+numActions+" actions is "+myAgent.getTotalProfit()+" (average profit: "+(myAgent.getTotalProfit() / (double)numActions)+")");
-		}
-		numActions++;
-		*/
-		
 		return action;
 	}
+
 }
