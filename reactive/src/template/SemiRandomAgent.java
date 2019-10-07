@@ -38,8 +38,8 @@ public class SemiRandomAgent implements ReactiveBehavior
 		
 		Action action = null;
 
-		
-		if (availableTask != null && (nbActions < 10 || availableTask.reward > vehicle.getReward() / (nbActions+1)   ) )
+		// First 10 times, go for it! Afterwards check if it increased reward per action, else move to random city
+		if (availableTask != null && (nbActions < 10 || availableTask.reward > vehicle.getReward() / (nbActions+1) ) )
 		{
 			action = new Pickup(availableTask);
 		} 

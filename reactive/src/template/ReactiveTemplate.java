@@ -38,13 +38,13 @@ public class ReactiveTemplate implements ReactiveBehavior
 	
 	private final int MAX_ITERATION = 1000000;
 	private final double EPSILON = 0;
-	private final double DEFAULT_DISCOUNT = 0.95;
+	private final double DEFAULT_DISCOUNT = 0.4; // Best results
 
 	@Override
 	public void setup(Topology topology, TaskDistribution td, Agent agent) 
 	{
 		// Reads the discount factor from the agents.xml file.
-		// If the property is not present it defaults to 0.95
+		// If the property is not present it defaults to 0.4
 		Double discount = agent.readProperty("discount-factor", Double.class,
 				DEFAULT_DISCOUNT);
 
@@ -188,25 +188,25 @@ public class ReactiveTemplate implements ReactiveBehavior
 		boolean BhasChanged = true;
 		boolean Vconverged = false;
 		
-		do
+		do // Optimization loop
 		{
-			int Bsame = 0;
-			int Vconverge = 0;
+			int Bsame = 0; // Counts the changes in the best next action list each iteration
+			int Vconverge = 0; // Counts the changes in the expected reward list each iteration
 			
 			for (int i = 0; i<numStates; i++)
 			{
-				double VmaxTemp = Double.NEGATIVE_INFINITY;
+				double VmaxTemp = Double.NEGATIVE_INFINITY; // Start at negative
 				int BmaxTemp = 0;
 				
 				
 				for (int j = 0; j<numActions; j++)
 				{
 					Q[i][j] = R[i][j];
-					for (int k = 0; k<numStates; k++)		 // TODO optimize???
+					for (int k = 0; k<numStates; k++)
 					{
 						Q[i][j] += discount * T[i][j][k] * V[k];
 					}
-					if (VmaxTemp < Q[i][j])
+					if (VmaxTemp < Q[i][j]) // Take max reward for state i and action j
 					{
 						VmaxTemp = Q[i][j];
 						BmaxTemp = j;
@@ -214,14 +214,14 @@ public class ReactiveTemplate implements ReactiveBehavior
 				}
 				
 				
-				if (Math.abs(V[i]- VmaxTemp) <= EPSILON)
+				if (Math.abs(V[i] - VmaxTemp) <= EPSILON) // Check if the reward has changed since last iteration
 				{	
 					Vconverge++;
 				}
 						
 				V[i] = VmaxTemp;
 				
-				if (B[i] != BmaxTemp)
+				if (B[i] != BmaxTemp) // Check if the best action has changed since last iteration
 				{
 					B[i] = BmaxTemp;
 				}
@@ -232,7 +232,6 @@ public class ReactiveTemplate implements ReactiveBehavior
 				
 			}
 			
-			System.out.println("Vconverge=" +Vconverge);
 	
 			if (Bsame == numStates)
 			{
@@ -264,11 +263,11 @@ public class ReactiveTemplate implements ReactiveBehavior
 	@Override
 	public Action act(Vehicle vehicle, Task availableTask) 
 	{
-		nbActions++;
+		nbActions++; // Count total actions
 		
 		Action action = null;
 
-		if (availableTask == null)
+		if (availableTask == null) // Choose actions based on the current state
 		{
 			int actionIndex = B[cityList.indexOf(vehicle.getCurrentCity())];
 			if (actionIndex == numCities) 
