@@ -1,4 +1,4 @@
-package src.template;
+package template;
 
 import java.util.Random;
 
@@ -25,7 +25,9 @@ public class RandomAgent implements ReactiveBehavior
 	@Override
 	public void setup(Topology topology, TaskDistribution td, Agent agent) 
 	{
-		
+		this.nbActions = 0;
+		this.random = new Random();
+		this.myAgent = agent;
 
 	}
 	
@@ -50,7 +52,7 @@ public class RandomAgent implements ReactiveBehavior
 		
 		if (nbActions % 1000 == 0) 
 		{
-			System.out.println("The total profit after "+nbActions+" actions is "+myAgent.getTotalProfit()+" (average profit: "+(myAgent.getTotalProfit() / (double)nbActions)+")");
+			System.out.println("The total reward after "+nbActions+" actions is "+myAgent.getTotalReward()+" (average reward: "+(myAgent.getTotalReward() / (double)nbActions)+")");
 		}
 		
 		return action;

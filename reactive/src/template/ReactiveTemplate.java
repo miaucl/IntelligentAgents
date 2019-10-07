@@ -1,4 +1,4 @@
-package src.template;
+package template;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,7 +47,6 @@ public class ReactiveTemplate implements ReactiveBehavior
 		// If the property is not present it defaults to 0.95
 		Double discount = agent.readProperty("discount-factor", Double.class,
 				DEFAULT_DISCOUNT);
-		
 
 		this.nbActions = 0;
 		this.random = new Random();
@@ -282,7 +281,7 @@ public class ReactiveTemplate implements ReactiveBehavior
 			{
 				City nextCity = cityList.get(actionIndex);
 				action = new Move(nextCity);
-				System.out.printf("=> Move(%d) [reward=%d]\n", actionIndex, 0);
+				//System.out.printf("=> Move(%d) [reward=%d]\n", actionIndex, 0);
 			}
 		}
 		else
@@ -291,20 +290,20 @@ public class ReactiveTemplate implements ReactiveBehavior
 			if (actionIndex == numCities) 
 			{
 				action = new Pickup(availableTask);
-				System.out.printf("=> Pick [reward=%d]\n", availableTask.reward);
+				//System.out.printf("=> Pick [reward=%d]\n", availableTask.reward);
 			}
 			else
 			{
 				City nextCity = cityList.get(actionIndex);
 				action = new Move(nextCity);
-				System.out.printf("=> Move(%d) [reward=%d]\n", actionIndex, 0);
+				//System.out.printf("=> Move(%d) [reward=%d]\n", actionIndex, 0);
 			}
 			
 		}
 		
 		if (nbActions % 1000 == 0) 
 		{
-			System.out.println("The total profit after "+nbActions+" actions is "+myAgent.getTotalProfit()+" (average profit: "+(myAgent.getTotalProfit() / (double)nbActions)+")");
+			System.out.println("The total reward after "+nbActions+" actions is "+myAgent.getTotalReward()+" (average reward: "+(myAgent.getTotalReward() / (double)nbActions)+")");
 		}
 
 		return action;

@@ -1,4 +1,4 @@
-package src.template;
+package template;
 
 import java.util.Random;
 
@@ -25,7 +25,9 @@ public class SemiRandomAgent implements ReactiveBehavior
 	public void setup(Topology topology, TaskDistribution td, Agent agent) 
 	{
 		
-
+		this.nbActions = 0;
+		this.random = new Random();
+		this.myAgent = agent;	
 	}
 	
 
@@ -37,20 +39,20 @@ public class SemiRandomAgent implements ReactiveBehavior
 		Action action = null;
 
 		
-		if (availableTask == null || (nbActions > 10 && availableTask.reward < vehicle.getReward() / (nbActions+1)   ) )
+		if (availableTask != null && (nbActions < 10 || availableTask.reward > vehicle.getReward() / (nbActions+1)   ) )
 		{
-			City currentCity = vehicle.getCurrentCity();
-			action = new Move(currentCity.randomNeighbor(random));		
+			action = new Pickup(availableTask);
 		} 
 		else 
 		{
-			action = new Pickup(availableTask);
+			City currentCity = vehicle.getCurrentCity();
+			action = new Move(currentCity.randomNeighbor(random));	
 		}
 		
 			
 		if (nbActions % 1000 == 0) 
 		{
-			System.out.println("The total profit after "+nbActions+" actions is "+myAgent.getTotalProfit()+" (average profit: "+(myAgent.getTotalProfit() / (double)nbActions)+")");
+			System.out.println("The total reward after "+nbActions+" actions is "+myAgent.getTotalReward()+" (average reward: "+(myAgent.getTotalReward() / (double)nbActions)+")");
 		}
 
 		return action;
