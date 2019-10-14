@@ -1,6 +1,7 @@
 package template;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 import logist.plan.Action;
 import logist.task.Task;
@@ -8,12 +9,14 @@ import logist.task.TaskSet;
 import logist.topology.Topology.City;
 import logist.plan.Action.Move;
 import logist.plan.Action.Pickup;
+import logist.simulation.Vehicle;
 import logist.plan.Action.Delivery;
 
-public class State 
+public class State implements Comparable<State>
 {
 	// State variables
 	private City city;
+	private Vehicle vehicle;
 	private int remainingCapacity;
 	private TaskSet todoTasks;
 	private TaskSet carriedTasks;
@@ -22,22 +25,28 @@ public class State
 	// Measurements
 	private int cost;
 	
+	// Heuristics
+	private double heuristic;
+	
 	// History
 	private ArrayList<Action> history;
 	
-	public State(City city, int remainingCapacity, TaskSet todoTasks, TaskSet carriedTasks, int cost)
+	public State(City city, Vehicle vehicle, int remainingCapacity, TaskSet todoTasks, TaskSet carriedTasks, int cost)
 	{
-		this(city, remainingCapacity, todoTasks, carriedTasks, cost, new ArrayList<Action>());
+		this(city, vehicle, remainingCapacity, todoTasks, carriedTasks, cost, new ArrayList<Action>());
 	}
 	
-	public State(City city, int remainingCapacity, TaskSet todoTasks, TaskSet carriedTasks, int cost, ArrayList<Action> history)
+	public State(City city, Vehicle vehicle, int remainingCapacity, TaskSet todoTasks, TaskSet carriedTasks, int cost, ArrayList<Action> history)
 	{
 		this.cost = cost;
 		
 		this.city = city;
+		this.vehicle = vehicle;
 		this.remainingCapacity = remainingCapacity;
 		this.todoTasks = todoTasks;
 		this.carriedTasks = carriedTasks;
+		
+		this.calculateHeuristic();
 		
 		this.history = history;
 	}
@@ -47,9 +56,9 @@ public class State
 		return todoTasks.isEmpty() && carriedTasks.isEmpty();
 	}
 	
-	public ArrayList<State> possibleNextStates()
+	public LinkedList<State> possibleNextStates()
 	{
-		ArrayList<State> nextStates = new ArrayList<State>();
+		LinkedList<State> nextStates = new LinkedList<State>();
 		
 						
 		for (Task task : todoTasks)
@@ -69,6 +78,7 @@ public class State
 				nextCarriedTasks.add(task);
 				
 				nextStates.add(new State(	nextCity, 
+											vehicle,
 											nextRemainingCapacity, 
 											nextTodoTasks, 
 											nextCarriedTasks, 
@@ -94,6 +104,7 @@ public class State
 				nextCost -= task.reward;
 				
 				nextStates.add(new State(	nextCity, 
+											vehicle,
 											nextRemainingCapacity, 
 											nextTodoTasks, 
 											nextCarriedTasks, 
@@ -111,9 +122,10 @@ public class State
 			int nextCost = cost;
 
 			nextHistory.add(new Move(possibleNextCity));
-			nextCost += city.distanceTo(possibleNextCity);
+			nextCost += city.distanceTo(possibleNextCity) * vehicle.costPerKm();
 			
 			nextStates.add(new State(	possibleNextCity, 
+										vehicle,
 										nextRemainingCapacity, 
 										nextTodoTasks, 
 										nextCarriedTasks, 
@@ -123,6 +135,24 @@ public class State
 
 		
 		return nextStates;
+	}
+	
+	public double calculateHeuristic()
+	{
+		heuristic = 0;
+		
+		for (Task task : todoTasks)
+		{
+			heuristic = Math.max(heuristic, city.distanceTo(task.pickupCity)) * vehicle.costPerKm();
+			//heuristic = Math.max(heuristic, city.distanceTo(task.deliveryCity));
+		}
+		
+		/*for (Task task : carriedTasks)
+		{
+			heuristic = Math.min(heuristic, city.distanceTo(task.deliveryCity)) * vehicle.costPerKm();
+		}*/
+		
+		return heuristic;
 	}
 	
 	public City getCity() 
@@ -150,9 +180,21 @@ public class State
 		return cost;
 	}
 	
+	public double getHeuristic() 
+	{
+		return heuristic;
+	}
+
+	
 	public ArrayList<Action> getHistory() 
 	{
 		return history;
+	}
+
+	@Override
+	public int compareTo(State o) 
+	{
+		return (int)Math.floor(cost + heuristic - (o.getCost() + o.getHeuristic()));
 	}
 
 }

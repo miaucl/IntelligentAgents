@@ -4,6 +4,7 @@ package template;
 import logist.simulation.Vehicle;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -65,7 +66,7 @@ public class DeliberativeTemplate implements DeliberativeBehavior
 		{
 		case ASTAR:
 			// ...
-			plan = naivePlan(vehicle, tasks);
+			plan = astarPlan(vehicle, tasks);
 			break;
 		case BFS:
 			// ...
@@ -104,34 +105,85 @@ public class DeliberativeTemplate implements DeliberativeBehavior
 
 	private Plan bfsPlan(Vehicle vehicle, TaskSet tasks) 
 	{
-		City current = vehicle.getCurrentCity();
-		Plan plan = new Plan(current);
+		City current = vehicle.getCurrentCity(); // Start at current city
+		Plan plan = new Plan(current); // Create a plan
 		
-        Deque<State> remainingStateDeque = new LinkedList<State>(); 
+        Deque<State> remainingStateDeque = new LinkedList<State>(); // The queue of remaining states to process (FIFO)
         
-        remainingStateDeque.add(new State(current, vehicle.capacity(), TaskSet.copyOf(tasks), TaskSet.noneOf(tasks), 0));
+        remainingStateDeque.add(new State(current, vehicle, vehicle.capacity(), TaskSet.copyOf(tasks), TaskSet.noneOf(tasks), 0)); // Add the initial state
 		
-		State optimalState = null;
+		State optimalState = null; // Keep track of the optimal solution found now
 		
 		State state;
 
 		int i = 0;
-		while (!remainingStateDeque.isEmpty())
+		while (!remainingStateDeque.isEmpty()) // Loop until all states processed
 		{
-			state = remainingStateDeque.poll();
+			state = remainingStateDeque.poll(); // Get next state
 			
 			System.out.println("i=" + ++i + ", l=" + remainingStateDeque.size() + ", c=" + state.getCost());
-			if (optimalState != null && optimalState.getCost() <= state.getCost())
+			if (optimalState != null && optimalState.getCost() <= state.getCost()) // Ignore if already too expensive and a better solution found
 			{
 			}
-			else if (state.isGoal())
+			else if (state.isGoal()) // Pick the new best solution and keep it
 			{
 				System.out.println("Solution found with cost: " + state.getCost());
 				optimalState = state;
 			}
-			else
+			else // Get all successors
 			{
-				remainingStateDeque.addAll(state.possibleNextStates());
+				remainingStateDeque.addAll(state.possibleNextStates()); // Add the successors to the FIFO
+			}
+		}
+		
+		for (State s : remainingStateDeque)
+		{
+			System.out.println(s.getTodoTasks().size() + ", " + s.getCarriedTasks().size());
+		}
+		
+		System.out.println("Plan:");
+		for (Action action : optimalState.getHistory())
+		{
+			plan.append(action);
+			System.out.println(action.toString());
+		}
+		
+		
+		return plan;
+	}
+
+	private Plan astarPlan(Vehicle vehicle, TaskSet tasks) 
+	{
+		City current = vehicle.getCurrentCity(); // Start at current city
+		Plan plan = new Plan(current); // Create a plan
+		
+		LinkedList<State> remainingStateDeque = new LinkedList<State>(); // The queue of remaining states to process (FIFO)
+        
+        remainingStateDeque.add(new State(current, vehicle, vehicle.capacity(), TaskSet.copyOf(tasks), TaskSet.noneOf(tasks), 0)); // Add the initial state
+		
+		State optimalState = null; // Keep track of the optimal solution found now
+		
+		State state;
+
+		int i = 0;
+		while (!remainingStateDeque.isEmpty()) // Loop until all states processed
+		{
+			state = remainingStateDeque.poll(); // Get next state
+			
+			System.out.println("i=" + ++i + ", l=" + remainingStateDeque.size() + ", c=" + state.getCost()+ ",h=" + state.getHeuristic());
+			if (optimalState != null && optimalState.getCost() <= state.getCost()) // Ignore if already too expensive and a better solution found
+			{
+			}
+			else if (state.isGoal()) // Pick the new best solution and keep it
+			{
+				System.out.println("Solution found with cost: " + state.getCost());
+				optimalState = state;
+			}
+			else // Get all successors
+			{
+				LinkedList<State> sortedSuccessorStates = state.possibleNextStates();
+				Collections.sort(sortedSuccessorStates); // Sort the successor states based on the cost and the heuristic
+				insertSortedSuccessorStates(remainingStateDeque, sortedSuccessorStates); // Insert the sorted successor states into the remain states queue
 			}
 			
 			//if (i == 1000) break;
@@ -151,6 +203,18 @@ public class DeliberativeTemplate implements DeliberativeBehavior
 		
 		
 		return plan;
+	}
+	
+	private void insertSortedSuccessorStates(LinkedList<State> remainingStateDeque, LinkedList<State> sortedSuccessorStates)
+	{
+		State state;
+		int i = 0;
+		while (!sortedSuccessorStates.isEmpty())
+		{
+			state = sortedSuccessorStates.poll(); // Get next state to insert
+			while (i < remainingStateDeque.size() && remainingStateDeque.get(i).compareTo(state) < 0) i++; // Compare the state with each element in the list
+			remainingStateDeque.add(i, state); // Insert the state at the given index
+		}
 	}
 
 	@Override
