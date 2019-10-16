@@ -1,6 +1,7 @@
 package template;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import logist.plan.Action;
@@ -141,6 +142,46 @@ public class State implements Comparable<State>
 	{
 		heuristic = 0;
 		
+		double shortestDistance = Double.POSITIVE_INFINITY;
+		double longestDistance = 0;
+		
+		HashSet<City> allDiffCities = new HashSet<City>(); 
+		
+		double totalReward = 0;
+		
+		allDiffCities.add(city);
+		for (Task task : todoTasks)
+		{
+			allDiffCities.add(task.pickupCity);
+			allDiffCities.add(task.deliveryCity);
+			totalReward += task.reward;
+		}
+		
+		for (Task task : carriedTasks)
+		{
+			allDiffCities.add(task.deliveryCity);
+			totalReward += task.reward;
+		}
+		
+		for (City city1 : allDiffCities)
+		{
+			for (City city2 : allDiffCities)
+			{
+				if (city1 == city2)
+				{
+					break;
+				}
+				
+				double pathLength = city1.distanceTo(city2);
+				shortestDistance = Math.min(shortestDistance, pathLength);
+				longestDistance = Math.max(longestDistance, pathLength);
+			}
+		}
+		
+		double heuristic1 = longestDistance * vehicle.costPerKm() - totalReward;
+		double heuristic2 = shortestDistance * allDiffCities.size() * vehicle.costPerKm() - totalReward;
+		double finalHeuristic = Math.max(heuristic1, heuristic2);
+		
 		for (Task task : todoTasks)
 		{
 			heuristic = Math.max(heuristic, city.distanceTo(task.pickupCity)) * vehicle.costPerKm();
@@ -152,7 +193,7 @@ public class State implements Comparable<State>
 			heuristic = Math.min(heuristic, city.distanceTo(task.deliveryCity)) * vehicle.costPerKm();
 		}*/
 		
-		return heuristic;
+		return finalHeuristic;
 	}
 	
 	public City getCity() 
