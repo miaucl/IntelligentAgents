@@ -102,7 +102,6 @@ public class State implements Comparable<State>
 				nextHistory.add(new Delivery(task));
 				nextRemainingCapacity += task.weight;
 				nextCarriedTasks.remove(task);
-				nextCost -= task.reward;
 				
 				nextStates.add(new State(	nextCity, 
 											vehicle,
@@ -138,62 +137,42 @@ public class State implements Comparable<State>
 		return nextStates;
 	}
 	
-	public double calculateHeuristic()
+	public void calculateHeuristic()
 	{
+		
 		heuristic = 0;
 		
-		double shortestDistance = Double.POSITIVE_INFINITY;
-		double longestDistance = 0;
-		
-		HashSet<City> allDiffCities = new HashSet<City>(); 
-		
-		double totalReward = 0;
-		
-		allDiffCities.add(city);
-		for (Task task : todoTasks)
-		{
-			allDiffCities.add(task.pickupCity);
-			allDiffCities.add(task.deliveryCity);
-			totalReward += task.reward;
-		}
-		
-		for (Task task : carriedTasks)
-		{
-			allDiffCities.add(task.deliveryCity);
-			totalReward += task.reward;
-		}
-		
-		for (City city1 : allDiffCities)
-		{
-			for (City city2 : allDiffCities)
+		int NUM_HEURISTIC = 3;
+
+		if (NUM_HEURISTIC == 1) {
+			for (Task task : todoTasks)
 			{
-				if (city1 == city2)
-				{
-					break;
-				}
-				
-				double pathLength = city1.distanceTo(city2);
-				shortestDistance = Math.min(shortestDistance, pathLength);
-				longestDistance = Math.max(longestDistance, pathLength);
+				heuristic = Math.max(heuristic, city.distanceTo(task.deliveryCity));
 			}
 		}
-		
-		double heuristic1 = longestDistance * vehicle.costPerKm() - totalReward;
-		double heuristic2 = shortestDistance * allDiffCities.size() * vehicle.costPerKm() - totalReward;
-		double finalHeuristic = Math.max(heuristic1, heuristic2);
-		
-		for (Task task : todoTasks)
-		{
-			heuristic = Math.max(heuristic, city.distanceTo(task.pickupCity)) * vehicle.costPerKm();
-			//heuristic = Math.max(heuristic, city.distanceTo(task.deliveryCity));
+		else if (NUM_HEURISTIC == 2) {
+			for (Task task : todoTasks)
+			{
+				heuristic = Math.max(heuristic, city.distanceTo(task.pickupCity) + task.pathLength()) ;
+			}
+		}
+		else if (NUM_HEURISTIC == 3) {
+			for (Task task : todoTasks)
+			{
+				heuristic = Math.max(heuristic, city.distanceTo(task.pickupCity) + task.pathLength());	
+			}
+			
+			for (Task task : carriedTasks)
+			{
+				heuristic = Math.max(heuristic, city.distanceTo(task.deliveryCity)) ;	
+			}
+			
 		}
 		
-		/*for (Task task : carriedTasks)
-		{
-			heuristic = Math.min(heuristic, city.distanceTo(task.deliveryCity)) * vehicle.costPerKm();
-		}*/
 		
-		return finalHeuristic;
+		
+		heuristic*= vehicle.costPerKm();
+		
 	}
 	
 	public City getCity() 

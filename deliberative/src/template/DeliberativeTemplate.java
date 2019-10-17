@@ -3,6 +3,7 @@ package template;
 /* import table */
 import logist.simulation.Vehicle;
 
+import java.security.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
@@ -105,6 +106,7 @@ public class DeliberativeTemplate implements DeliberativeBehavior
 
 	private Plan bfsPlan(Vehicle vehicle, TaskSet tasks) 
 	{
+		long start = System.currentTimeMillis();
 		City current = vehicle.getCurrentCity(); // Start at current city
 		Plan plan = new Plan(current); // Create a plan
 		
@@ -149,17 +151,27 @@ public class DeliberativeTemplate implements DeliberativeBehavior
 		}
 		
 		
+		long end = System.currentTimeMillis();
+		
+		long currentTime = end - start;
+		
+		System.out.println("TIME: T= "+currentTime+" ms");
+		
+		
+		
+		
 		return plan;
 	}
 
 	private Plan astarPlan(Vehicle vehicle, TaskSet tasks) 
 	{
+		long start = System.currentTimeMillis(); 
 		City current = vehicle.getCurrentCity(); // Start at current city
 		Plan plan = new Plan(current); // Create a plan
 		
 		LinkedList<State> remainingStateDeque = new LinkedList<State>(); // The queue of remaining states to process (FIFO)
         
-        remainingStateDeque.add(new State(current, vehicle, vehicle.capacity(), TaskSet.copyOf(tasks), TaskSet.noneOf(tasks), 0)); // Add the initial state
+        remainingStateDeque.add(new State(current, vehicle, vehicle.capacity(), TaskSet.copyOf(tasks), TaskSet.copyOf(vehicle.getCurrentTasks()), 0)); // Add the initial state
 		
 		State optimalState = null; // Keep track of the optimal solution found now
 		
@@ -171,7 +183,7 @@ public class DeliberativeTemplate implements DeliberativeBehavior
 			state = remainingStateDeque.poll(); // Get next state
 			
 			System.out.println("i=" + ++i + ", l=" + remainingStateDeque.size() + ", c=" + state.getCost()+ ",h=" + state.getHeuristic());
-			if (optimalState != null && optimalState.getCost() <= state.getCost()) // Ignore if already too expensive and a better solution found
+			if (optimalState != null && optimalState.getCost() <= state.getCost()+state.getHeuristic()) // Ignore if already too expensive and a better solution found
 			{
 			}
 			else if (state.isGoal()) // Pick the new best solution and keep it
@@ -200,6 +212,12 @@ public class DeliberativeTemplate implements DeliberativeBehavior
 			plan.append(action);
 			System.out.println(action.toString());
 		}
+		
+		long end = System.currentTimeMillis();
+		
+		long currentTime = end - start;
+		
+		System.out.println("TIME: T= "+currentTime+" ms");
 		
 		
 		return plan;
