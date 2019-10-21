@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- the topology of 'france' -->
+<topology name="france3" >
+
+	<!-- the list of cities in the topology -->
+	<cities>
+		<city x="324" y= "87" name="Paris"/>
+		<city x="190" y="353" name="Bordeaux"/>
+	</cities>
+
+	<!-- the list of routes in the topology -->
+	<routes>
+		<route distance="584" from="Paris" to="Bordeaux"/>
+	</routes>
+
+</topology>
