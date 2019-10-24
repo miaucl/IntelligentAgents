@@ -59,6 +59,8 @@ public class CentralizedTemplate implements CentralizedBehavior {
 
     @Override
     public List<Plan> plan(List<Vehicle> vehicles, TaskSet tasks) {
+        //Solution.taskActions=new TaskAction[3];
+
         long time_start = System.currentTimeMillis();
         
 //		System.out.println("Agent " + agent.id() + " has tasks " + tasks);
