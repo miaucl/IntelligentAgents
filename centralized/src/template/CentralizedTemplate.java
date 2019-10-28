@@ -3,6 +3,7 @@ package template;
 import java.io.File;
 //the list of imports
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import logist.LogistSettings;
@@ -77,6 +78,59 @@ public class CentralizedTemplate implements CentralizedBehavior {
         System.out.println("The plan was generated in " + duration + " milliseconds.");
         
         return plans;
+    }
+    
+    private Solution createInitialSolution(List<Vehicle> vehicles, TaskSet tasks)
+    {
+    	Solution.taskActions = new TaskAction[tasks.size()];
+    	Solution.vehicles = new Vehicle[vehicles.size()];
+    	
+    	for (int i = 0; i<vehicles.size(); i++)
+    	{
+    		Solution.vehicles[i] = vehicles.get(i);
+    	}
+    	
+    	LinkedList<TaskAction>[] chains = new LinkedList[vehicles.size()];
+    	
+    	int i = 0;
+    	int taskActionIndex = 0;
+    	for (Task task : tasks)
+    	{
+    		TaskAction pickup = new TaskAction(task, TaskActionType.Pickup);
+    		TaskAction delivery = new TaskAction(task, TaskActionType.Delivery);
+    		
+    		Solution.taskActions[taskActionIndex] = pickup;
+    		Solution.taskActions[taskActionIndex + 1] = delivery;
+    				
+    		taskActionIndex += 2;
+    		
+    		
+    		
+    		boolean assigned = false;
+    		for (int j = i; j + i > vehicles.size(); j++)
+    		{
+    			if (task.weight <= vehicles.get(j % vehicles.size()).capacity())
+    			{
+    	    		pickup.setLinkedTaskAction(delivery);
+    	    		delivery.setLinkedTaskAction(pickup);
+    	    		
+    	    		chains[j % vehicles.size()].add(pickup);
+    	    		chains[j % vehicles.size()].add(delivery);
+    	    		assigned = true;
+    	    		
+    	    		i = ++i % vehicles.size();
+    	    		break;
+    			}
+    		}
+    		
+    		if (!assigned)
+    		{
+    			System.out.println("Task too heavy!");
+    		}	    		
+    	}
+    
+    	
+    	return new Solution(chains);
     }
 
     private Plan naivePlan(Vehicle vehicle, TaskSet tasks) {
