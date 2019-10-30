@@ -1,5 +1,6 @@
 package template;
 
+import logist.plan.Action;
 import logist.task.Task;
 import logist.topology.Topology.City;
 
@@ -36,11 +37,13 @@ public class TaskAction
 		return this.id;
 	}
 
-	public TaskAction getLinkedTaskAction() {
+	public TaskAction getLinkedTaskAction() 
+	{
 		return linkedTaskAction;
 	}
 
-	public void setLinkedTaskAction(TaskAction linkedTaskAction) {
+	public void setLinkedTaskAction(TaskAction linkedTaskAction) 
+	{
 		this.linkedTaskAction = linkedTaskAction;
 	}
 
@@ -48,5 +51,5 @@ public class TaskAction
 	{
 		return (type == TaskActionType.Pickup) ? this.task.pickupCity : this.task.deliveryCity;
 	}
-
+	
 }

@@ -3,6 +3,7 @@ package template;
 import java.io.File;
 //the list of imports
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -35,6 +36,11 @@ public class CentralizedTemplate implements CentralizedBehavior {
     private long timeout_setup;
     private long timeout_plan;
     
+    private static final double P = 0.7;
+    private static final int N = 10;
+    
+	private Random rand = new Random();
+    
     @Override
     public void setup(Topology topology, TaskDistribution distribution,
             Agent agent) {
@@ -64,13 +70,29 @@ public class CentralizedTemplate implements CentralizedBehavior {
 
         long time_start = System.currentTimeMillis();
         
-//		System.out.println("Agent " + agent.id() + " has tasks " + tasks);
+		/*System.out.println("Agent " + agent.id() + " has tasks " + tasks);
         Plan planVehicle1 = naivePlan(vehicles.get(0), tasks);
 
         List<Plan> plans = new ArrayList<Plan>();
         plans.add(planVehicle1);
         while (plans.size() < vehicles.size()) {
             plans.add(Plan.EMPTY);
+        }*/
+        
+        Solution solution = createInitialSolution(vehicles, tasks);
+        
+        int i = 0;
+        do
+        {
+        	solution = findBestSolution(solution, solution.getPermutations(N));
+        	System.out.println("ITERATION: " + ++i);
+        } while (i < 1000);
+        
+        List<Plan> plans = new ArrayList<Plan>();
+        
+        for (Vehicle vehicle : vehicles)
+        {
+        	plans.add(extractPlan(solution, vehicle));
         }
         
         long time_end = System.currentTimeMillis();
@@ -82,56 +104,107 @@ public class CentralizedTemplate implements CentralizedBehavior {
     
     private Solution createInitialSolution(List<Vehicle> vehicles, TaskSet tasks)
     {
-    	Solution.taskActions = new TaskAction[tasks.size()];
+    	Solution.taskActions = new TaskAction[tasks.size() * 2];
     	Solution.vehicles = new Vehicle[vehicles.size()];
+    	Solution.taskActionIndex = new HashMap<Integer, Integer>();
+    	Solution.vehicleIndex = new HashMap<Integer, Integer>();
     	
+    	ArrayList<LinkedList<TaskAction>> chains = new ArrayList<LinkedList<TaskAction>>();    	
+    
     	for (int i = 0; i<vehicles.size(); i++)
     	{
     		Solution.vehicles[i] = vehicles.get(i);
+        	Solution.vehicleIndex.put(vehicles.get(i).id(), i);
+    		
+    		chains.add(new LinkedList<TaskAction>());
     	}
     	
-    	LinkedList<TaskAction>[] chains = new LinkedList[vehicles.size()];
     	
     	int i = 0;
     	int taskActionIndex = 0;
     	for (Task task : tasks)
     	{
+    		System.out.println(task.toString());
     		TaskAction pickup = new TaskAction(task, TaskActionType.Pickup);
     		TaskAction delivery = new TaskAction(task, TaskActionType.Delivery);
     		
+    		pickup.setLinkedTaskAction(delivery);
+    		delivery.setLinkedTaskAction(pickup);
+   		
     		Solution.taskActions[taskActionIndex] = pickup;
     		Solution.taskActions[taskActionIndex + 1] = delivery;
+        	Solution.taskActionIndex.put(pickup.getId(), taskActionIndex);
+        	Solution.taskActionIndex.put(delivery.getId(), taskActionIndex + 1);
     				
     		taskActionIndex += 2;
     		
-    		
-    		
     		boolean assigned = false;
-    		for (int j = i; j + i > vehicles.size(); j++)
+    		int count = 0;
+    		do
     		{
-    			if (task.weight <= vehicles.get(j % vehicles.size()).capacity())
+    			if (task.weight <= vehicles.get(i).capacity())
     			{
-    	    		pickup.setLinkedTaskAction(delivery);
-    	    		delivery.setLinkedTaskAction(pickup);
-    	    		
-    	    		chains[j % vehicles.size()].add(pickup);
-    	    		chains[j % vehicles.size()].add(delivery);
+    	    		chains.get(i).add(pickup);
+    	    		chains.get(i).add(delivery);
     	    		assigned = true;
-    	    		
-    	    		i = ++i % vehicles.size();
-    	    		break;
     			}
+	    		i = (++i) % vehicles.size();
+	    		count++;
     		}
+    		while (!assigned && count < vehicles.size());
+    		
     		
     		if (!assigned)
     		{
-    			System.out.println("Task too heavy!");
-    		}	    		
+    			System.out.println("Task too heavy for all vehicles!");
+    		}   		
     	}
     
     	
     	return new Solution(chains);
     }
+    
+    private Solution findBestSolution(Solution previousSolution, Solution[] solutions)
+    {
+    	Solution bestSolution = null;
+    	double bestSolutionCost = 0;
+    	
+    	// TODO pick at random
+    	for (Solution solution : solutions)
+    	{
+    		if (bestSolution == null || bestSolutionCost > solution.cost()) bestSolution = solution;
+    	}
+    	
+		return rand.nextDouble() > P ? previousSolution : bestSolution;
+    }
+    
+    private Plan extractPlan(Solution solution, Vehicle vehicle)
+    {
+        City current = vehicle.getCurrentCity();
+        Plan plan = new Plan(current);
+        
+        TaskAction nextTaskAction = solution.nextTaskAction(vehicle);
+        
+        while (nextTaskAction != null)
+        {
+        	for (City city : current.pathTo(nextTaskAction.getCity())) 
+        	{
+                plan.appendMove(city);
+            }
+        	if (nextTaskAction.getType() == TaskActionType.Pickup)
+        	{
+            	plan.appendPickup(nextTaskAction.getTask());        		
+        	}
+        	else
+        	{
+            	plan.appendDelivery(nextTaskAction.getTask());        		        		
+        	}
+        	current = nextTaskAction.getCity();
+        }
+        
+        return plan;
+    }
+
 
     private Plan naivePlan(Vehicle vehicle, TaskSet tasks) {
         City current = vehicle.getCurrentCity();

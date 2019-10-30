@@ -20,29 +20,30 @@ public class Solution {
 	static public HashMap<Integer,Integer> vehicleIndex; // Generic object id to index
 	
 	
-	private LinkedList<TaskAction>[] chainMap; // chain of vehicle
+	private ArrayList<LinkedList<TaskAction>> chainMap; // chain of vehicle
 	private Integer[] timeMap; // time of action
 	private Vehicle[] vehicleMap; // vehicle of action
 
 	Random rand = new Random();
 	
 	
-	Solution(LinkedList<TaskAction>[] chainMap)
+	Solution(ArrayList<LinkedList<TaskAction>> chainMap)
 	{
-	  	Integer timeMap[] = new Integer[chainMap.length];
-    	Vehicle vehicleMap[] = new Vehicle[chainMap.length];
+	  	Integer timeMap[] = new Integer[taskActions.length];
+    	Vehicle vehicleMap[] = new Vehicle[taskActions.length];
+    	
   
 		this.chainMap = chainMap;
 		this.timeMap = timeMap;
 		this.vehicleMap = vehicleMap;
-		
+				
     	updateTime();
     	updateVehicle();
 
 	}
 		
 	Solution(
-			LinkedList<TaskAction>[] chainMap, 
+			ArrayList<LinkedList<TaskAction>> chainMap, 
 			Integer[] timeMap, 
 			Vehicle[] vehicleMap)
 	{
@@ -59,7 +60,7 @@ public class Solution {
 		{
 			// Duplicate
 			permutations[i] = new Solution(
-					chainMap.clone(),
+					(ArrayList<LinkedList<TaskAction>>)chainMap.clone(),
 					timeMap.clone(),
 					vehicleMap.clone());
 			permutations[i].permute(); // Permute the solution
@@ -84,18 +85,20 @@ public class Solution {
 				TaskAction nextTaskAction = this.nextTaskAction(currentTaskAction); // Take NEXT task action
 				
 				Vehicle vehicle = vehicle(currentTaskAction);
-				LinkedList<TaskAction> list = chainMap[vehicleIndex.get(vehicle.id())];
+				LinkedList<TaskAction> list = chainMap.get(vehicleIndex.get(vehicle.id()));
 				
 				 // Not allowed as it is the last task OR the actions are on the same task (pickup->delivery)
 				if (nextTaskAction == null || nextTaskAction.getTask() == currentTaskAction.getTask()) continue;				
 				
 				
 				// Switch the order of the task actions
+				System.out.print("N" + time(currentTaskAction) + "\tC" + time(nextTaskAction) + "\tL" + list.size());
 				list.set(time(nextTaskAction), currentTaskAction);
 				list.set(time(currentTaskAction), nextTaskAction);
 				
 				
 				// Picking task EARLIER is critical, as it may overload the vehicle, thus it has to be checked!
+				System.out.print("\t" + nextTaskAction.getType().toString() + "<==>" + currentTaskAction.getType().toString());
 				if (currentTaskAction.getType() == TaskActionType.Delivery && 
 					nextTaskAction.getType() == TaskActionType.Pickup)
 				{
@@ -105,9 +108,12 @@ public class Solution {
 						// Reset the order of the task actions
 						list.set(time(currentTaskAction), currentTaskAction);
 						list.set(time(nextTaskAction), nextTaskAction);	
+						System.out.println("\tRESET");
 						continue;
 					}
+
 				}
+				System.out.println();
 				
 				// Update the time table
 				swapTime(currentTaskAction, nextTaskAction);
@@ -121,19 +127,19 @@ public class Solution {
 				TaskAction taskAction = taskActions[r2];
 				TaskAction linkedTaskAction = taskAction.getLinkedTaskAction(); // Take LINKED task action
 				Vehicle vehicle = vehicle(taskAction);
-				LinkedList<TaskAction> list = chainMap[vehicleIndex.get(vehicle.id())];
+				LinkedList<TaskAction> list = chainMap.get(vehicleIndex.get(vehicle.id()));
 
 				
 				int r3 = rand.nextInt(vehicles.length); // Choose random vehicle action
 
 				Vehicle appendToVehicle = vehicles[r3];
-				LinkedList<TaskAction> appendToList = chainMap[vehicleIndex.get(appendToVehicle.id())];
+				LinkedList<TaskAction> appendToList = chainMap.get(vehicleIndex.get(appendToVehicle.id()));
 
 				TaskAction pickupTaskAction = (taskAction.getType() == TaskActionType.Pickup) ? taskAction : linkedTaskAction;
 				TaskAction deliveryTaskAction = (taskAction.getType() == TaskActionType.Delivery) ? taskAction : linkedTaskAction;
 				
+				list.remove(time(deliveryTaskAction).intValue()); // First delivery, as this does not shift the index
 				list.remove(time(pickupTaskAction).intValue());
-				list.remove(time(deliveryTaskAction).intValue());
 				
 				appendToList.add(pickupTaskAction);
 				appendToList.add(deliveryTaskAction);
@@ -168,7 +174,7 @@ public class Solution {
 		int remainingCapacity = v.capacity();
 		ArrayList<Task> vehicleTasks = new ArrayList<Task>();
 		
-		for(TaskAction currentTaskAction : chainMap[vehicleIndex.get(v.id())])
+		for (TaskAction currentTaskAction : chainMap.get(vehicleIndex.get(v.id())))
 		{
 			if (currentTaskAction.getType() == TaskActionType.Pickup && // Is it a pick up
 				remainingCapacity >= currentTaskAction.getTask().weight) // Still capacity left
@@ -202,7 +208,7 @@ public class Solution {
 
 	private void updateVehicle(Vehicle v)
 	{				
-		for(TaskAction currentTaskAction : chainMap[vehicleIndex.get(v.id())])
+		for (TaskAction currentTaskAction : chainMap.get(vehicleIndex.get(v.id())))
 		{
 			vehicleMap[taskActionIndex.get(currentTaskAction.getId())] = v; // Set vehicle of task action
 		}
@@ -221,9 +227,10 @@ public class Solution {
 	{		
 		int i = 0;
 		
-		for(TaskAction currentTaskAction : chainMap[vehicleIndex.get(v.id())])
+		for (TaskAction currentTaskAction : chainMap.get(vehicleIndex.get(v.id())))
 		{
-			timeMap[taskActionIndex.get(currentTaskAction.getId())] = Integer.valueOf(i++); // Set time of task action
+			timeMap[taskActionIndex.get(currentTaskAction.getId())] = Integer.valueOf(i); // Set time of task action
+			i++;
 		}
 	}
 
@@ -237,7 +244,7 @@ public class Solution {
 
 	private void appendTime(Vehicle v, TaskAction t)
 	{
-		timeMap[taskActionIndex.get(t.getId())] = chainMap[vehicleIndex.get(v.id())].size();
+		timeMap[taskActionIndex.get(t.getId())] = chainMap.get(vehicleIndex.get(v.id())).size();
 	}
 	
 	
@@ -263,7 +270,7 @@ public class Solution {
 		double accumulatedDist = 0.0;
 
 		City currentCity = v.homeCity();
-		for(TaskAction nextTaskAction : chainMap[vehicleIndex.get(v.id())])
+		for(TaskAction nextTaskAction : chainMap.get(vehicleIndex.get(v.id())))
 		{
 			City nextCity = nextTaskAction.getCity();
 			accumulatedDist += currentCity.distanceTo(nextCity);
@@ -289,14 +296,14 @@ public class Solution {
 	public TaskAction nextTaskAction(TaskAction taskAction)
 	{
 		Vehicle vehicle = vehicle(taskAction);
-		LinkedList<TaskAction> list = chainMap[vehicleIndex.get(vehicle.id())];
+		LinkedList<TaskAction> list = chainMap.get(vehicleIndex.get(vehicle.id()));
 		Integer t = time(taskAction) + 1;
 		
 		return t >= list.size() ? null : list.get(t);
 	}
 	public TaskAction nextTaskAction(Vehicle vehicle)
 	{
-		LinkedList<TaskAction> list = chainMap[vehicleIndex.get(vehicle.id())];
+		LinkedList<TaskAction> list = chainMap.get(vehicleIndex.get(vehicle.id()));
 		
 		return list.isEmpty() ? null : list.get(0);
 	}
