@@ -12,7 +12,7 @@ import logist.topology.Topology.City;
 
 public class Solution {
 
-	static final int maxPermutationTries = 10;
+	static final int maxPermutationTries = 20;
 
 	static public TaskAction[] taskActions = null; // All task actions available
 	static public Vehicle[] vehicles = null; // All vehicles available
