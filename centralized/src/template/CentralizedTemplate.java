@@ -84,9 +84,11 @@ public class CentralizedTemplate implements CentralizedBehavior {
         int i = 0;
         do
         {
+        	System.out.println("ITERATION: " + i);
+        	System.out.println(solution.toString());
         	solution = findBestSolution(solution, solution.getPermutations(N));
-        	System.out.println("ITERATION: " + ++i);
-        } while (i < 1000);
+        	i++;
+        } while (i < 100);
         
         List<Plan> plans = new ArrayList<Plan>();
         
@@ -104,6 +106,8 @@ public class CentralizedTemplate implements CentralizedBehavior {
     
     private Solution createInitialSolution(List<Vehicle> vehicles, TaskSet tasks)
     {
+    	Solution.rand = new Random();
+    	
     	Solution.taskActions = new TaskAction[tasks.size() * 2];
     	Solution.vehicles = new Vehicle[vehicles.size()];
     	Solution.taskActionIndex = new HashMap<Integer, Integer>();
@@ -169,11 +173,17 @@ public class CentralizedTemplate implements CentralizedBehavior {
     	Solution bestSolution = null;
     	double bestSolutionCost = 0;
     	
+    	
     	// TODO pick at random
     	for (Solution solution : solutions)
     	{
-    		if (bestSolution == null || bestSolutionCost > solution.cost()) bestSolution = solution;
-    	}
+    		System.out.println("Sol cost:" + solution.cost());
+    		if (bestSolution == null || bestSolutionCost > solution.cost()) 
+    		{
+    			bestSolution = solution;
+    			bestSolutionCost = solution.cost();
+    		}
+       	}
     	
 		return rand.nextDouble() > P ? previousSolution : bestSolution;
     }
@@ -200,6 +210,7 @@ public class CentralizedTemplate implements CentralizedBehavior {
             	plan.appendDelivery(nextTaskAction.getTask());        		        		
         	}
         	current = nextTaskAction.getCity();
+        	nextTaskAction = solution.nextTaskAction(nextTaskAction);
         }
         
         return plan;

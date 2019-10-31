@@ -52,4 +52,14 @@ public class TaskAction
 		return (type == TaskActionType.Pickup) ? this.task.pickupCity : this.task.deliveryCity;
 	}
 	
+	public String toString()
+	{
+		return type.toString() + "_" + task.toString();
+	}
+	
+	public String toShortString()
+	{
+		return (type == TaskActionType.Pickup ? "P" : "D") + "_" + task.id;
+	}
+	
 }

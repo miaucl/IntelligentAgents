@@ -1,6 +1,7 @@
 package template;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
@@ -24,7 +25,7 @@ public class Solution {
 	private Integer[] timeMap; // time of action
 	private Vehicle[] vehicleMap; // vehicle of action
 
-	Random rand = new Random();
+	static public Random rand;
 	
 	
 	Solution(ArrayList<LinkedList<TaskAction>> chainMap)
@@ -59,8 +60,15 @@ public class Solution {
 		for (int i = 0; i<n; i++)
 		{
 			// Duplicate
+			ArrayList<LinkedList<TaskAction>> duplicatedChainMap = new ArrayList<LinkedList<TaskAction>>();
+			
+			for (LinkedList list : chainMap)
+			{
+				duplicatedChainMap.add((LinkedList)list.clone());
+			}
+			
 			permutations[i] = new Solution(
-					(ArrayList<LinkedList<TaskAction>>)chainMap.clone(),
+					duplicatedChainMap,
 					timeMap.clone(),
 					vehicleMap.clone());
 			permutations[i].permute(); // Permute the solution
@@ -92,13 +100,11 @@ public class Solution {
 				
 				
 				// Switch the order of the task actions
-				System.out.print("N" + time(currentTaskAction) + "\tC" + time(nextTaskAction) + "\tL" + list.size());
 				list.set(time(nextTaskAction), currentTaskAction);
 				list.set(time(currentTaskAction), nextTaskAction);
 				
 				
 				// Picking task EARLIER is critical, as it may overload the vehicle, thus it has to be checked!
-				System.out.print("\t" + nextTaskAction.getType().toString() + "<==>" + currentTaskAction.getType().toString());
 				if (currentTaskAction.getType() == TaskActionType.Delivery && 
 					nextTaskAction.getType() == TaskActionType.Pickup)
 				{
@@ -108,12 +114,10 @@ public class Solution {
 						// Reset the order of the task actions
 						list.set(time(currentTaskAction), currentTaskAction);
 						list.set(time(nextTaskAction), nextTaskAction);	
-						System.out.println("\tRESET");
 						continue;
 					}
 
 				}
-				System.out.println();
 				
 				// Update the time table
 				swapTime(currentTaskAction, nextTaskAction);
@@ -142,11 +146,13 @@ public class Solution {
 				list.remove(time(pickupTaskAction).intValue());
 				
 				appendToList.add(pickupTaskAction);
-				appendToList.add(deliveryTaskAction);
-				
-				// Update the time table
+				updateVehicle(appendToVehicle, pickupTaskAction);
 				appendTime(appendToVehicle, pickupTaskAction);
+				
+				appendToList.add(deliveryTaskAction);
+				updateVehicle(appendToVehicle, deliveryTaskAction);
 				appendTime(appendToVehicle, deliveryTaskAction);
+				
 				updateTime(vehicle);
 				
 				return;
@@ -214,6 +220,11 @@ public class Solution {
 		}
 	}
 
+	public void updateVehicle(Vehicle v, TaskAction t)
+	{
+		vehicleMap[taskActionIndex.get(t.getId())] = v;
+	}
+
 	public void updateTime()
 	{
 		
@@ -244,7 +255,7 @@ public class Solution {
 
 	private void appendTime(Vehicle v, TaskAction t)
 	{
-		timeMap[taskActionIndex.get(t.getId())] = chainMap.get(vehicleIndex.get(v.id())).size();
+		timeMap[taskActionIndex.get(t.getId())] = chainMap.get(vehicleIndex.get(v.id())).size() - 1;
 	}
 	
 	
@@ -314,6 +325,21 @@ public class Solution {
 	public Vehicle vehicle(TaskAction taskAction)
 	{
 		return vehicleMap[taskActionIndex.get(taskAction.getId())];
+	}
+	
+	public String toString()
+	{
+		String s = "Solution: " + this.cost() + "\n"; 
+		for (LinkedList<TaskAction> list : chainMap)
+		{
+			for (TaskAction taskAction : list)
+			{
+				s += taskAction.toShortString() + "\t";
+			}
+
+			s += "\n";
+		}
+		return s;
 	}
 
 }
