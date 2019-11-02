@@ -28,7 +28,8 @@ import logist.topology.Topology.City;
  *
  */
 @SuppressWarnings("unused")
-public class CentralizedTemplate implements CentralizedBehavior {
+public class CentralizedTemplate implements CentralizedBehavior 
+{
 
     private Topology topology;
     private TaskDistribution distribution;
@@ -36,16 +37,18 @@ public class CentralizedTemplate implements CentralizedBehavior {
     private long timeout_setup;
     private long timeout_plan;
     
-    private static final double P = 0.7;
-    private static final int N = 10;
-    private static final int M = 1000;
-    private static final double K = 1000;
+    private static final double P = 0.7; // Probability to pick old solution instead of new permutation
+    private static final int N = 10; // Number of solution space permutations calculated per iteration
+    private static final int M = 1000; // The averaging filter applied to the cost of the solutions
+    private static final double K = 2000; // Max tries to find best solution
     
-	private Random rand = new Random();
+	private Random rand = new Random(); // Get a random number generator
     
     @Override
-    public void setup(Topology topology, TaskDistribution distribution,
-            Agent agent) {
+    public void setup(	Topology topology, 
+    					TaskDistribution distribution,
+    					Agent agent) 
+    {
         
         // this code is used to get the timeouts
         LogistSettings ls = null;
@@ -67,34 +70,32 @@ public class CentralizedTemplate implements CentralizedBehavior {
     }
 
     @Override
-    public List<Plan> plan(List<Vehicle> vehicles, TaskSet tasks) {
-        //Solution.taskActions=new TaskAction[3];
+    public List<Plan> plan(List<Vehicle> vehicles, TaskSet tasks) 
+    {
 
-        long time_start = System.currentTimeMillis();
+        long time_start = System.currentTimeMillis(); // Get start timestamp of the planning method
         
-		/*System.out.println("Agent " + agent.id() + " has tasks " + tasks);
-        Plan planVehicle1 = naivePlan(vehicles.get(0), tasks);
-
-        List<Plan> plans = new ArrayList<Plan>();
-        plans.add(planVehicle1);
-        while (plans.size() < vehicles.size()) {
-            plans.add(Plan.EMPTY);
-        }*/
         
-        Solution intialSolution = createInitialSolution(vehicles, tasks);
-        ArrayList<Solution> solutions = new ArrayList<Solution>();
-        Solution  minSolution = intialSolution;
-        for (int k = 0; k < K; k++)
+        Solution intialSolution = createInitialSolution(vehicles, tasks); // Create the initial solution (same for all tries)
+        ArrayList<Solution> solutions = new ArrayList<Solution>(); // Keep track of solutions found
+        Solution  minSolution = intialSolution; // Keep the best solution over all tries
+        int k = 0; 
+        long maxRunTime = 0; // Keep the longest run as an estimation to stop before reaching the max time limit
+        long plannedLastRun = time_start + 60 * 1000; // 1 minute horizon
+        while (k < K && 2 * maxRunTime < plannedLastRun - System.currentTimeMillis()) // Stop due to max k or out of time
         {
-        	Solution solution = intialSolution;
-        	System.out.println("k="+k);
+        	long k_start = System.currentTimeMillis(); // Get start timestamp of try k
+        	
+        	Solution solution = intialSolution; // Start from the initial solution
+        	System.out.println("k = "+k + ", d=" + (plannedLastRun - System.currentTimeMillis()));
         
         
-	        ArrayList<Double> costs = new ArrayList<Double>();
-	        ArrayList<Double> m1s = new ArrayList<Double>();
-	        ArrayList<Double> m2s = new ArrayList<Double>();
-	        ArrayList<Double> mTots = new ArrayList<Double>();
-	        costs.add(solution.cost());
+	        ArrayList<Double> costs = new ArrayList<Double>(); // List of the cost evolution
+	        ArrayList<Double> m1s = new ArrayList<Double>(); // List of the first averaged buffer
+	        ArrayList<Double> m2s = new ArrayList<Double>(); // List of the second averaged buffer
+	        ArrayList<Double> mTots = new ArrayList<Double>(); // List of the average change in value over the last 2M iterations
+	        
+	        costs.add(solution.cost()); // Add cost of initial solution
 	        int i = 0;
 	        double m1 = 0;
 	        double m2 = 0;
@@ -102,53 +103,36 @@ public class CentralizedTemplate implements CentralizedBehavior {
 	        do
 	        {
 	      
-	        	solution = findBestSolution(solution, solution.getPermutations(N));
-	        	double cost = solution.cost();
-	        	costs.add(cost);
-	        	if (i < M)
+	        	solution = findBestSolution(solution, solution.getPermutations(N)); // Get best permutation of current solution
+	        	double cost = solution.cost(); // Calculate the cost
+	        	costs.add(cost); // Add cost of current solution
+	        	if (i < M) // Start filling buffer 2
 	        	{
 	        		m2+=cost;
 	        	}
-	        	else if (i < M * 2)
+	        	else if (i < M * 2) // Also start filling buffer 1
 	        	{
 	        		m1+=costs.get(i-M);
-	        		m2=m2-costs.get(i-M)+costs.get(i);
+	        		m2=m2-costs.get(i-M)+costs.get(i); // Update buffer 1
 	        	}
 	        	else
 	        	{
-	        		mTotal=(m1-m2)/M;
+	        		mTotal=(m1-m2)/M; // Calculate the difference
 	        		m1s.add(m1);
 	        		m2s.add(m2);
 	        		mTots.add(mTotal);
 	        		
-	        		m1=m1-costs.get(i-2*M)+costs.get(i-M);
-	        		m2=m2-costs.get(i-M)+costs.get(i);
+	        		m1=m1-costs.get(i-2*M)+costs.get(i-M); // Update buffer 1
+	        		m2=m2-costs.get(i-M)+costs.get(i); // Update buffer 2
 	        		
 	        		
 	        	}
-	        	/*
-	        	if(i >= 2*M) 
-	        	{ 
-		        	m1 = 0;
-		        	m2 = 0;
-		        	for (int j = 0; j < M; j++)
-		        	{
-		        		
-		        		m1+=costs.get(i-2*M+j);
-		        		m2+=costs.get(i-M+j);
-		        	}
-		        	m1/=M;
-		        	m2/=M;
-		        	m1s.add(m1);
-		        	m2s.add(m2);
-		        	mTots.add(m1-m2);
-	        	}*/
 	        	i++;
-		        if (solution.cost()<minSolution.cost())
+		        if (solution.cost() < minSolution.cost()) // Check if current solution is better
 		        {
 		        	minSolution=solution;
 		        }
-	        } while (mTotal >= 0 || i <= M * 2); //local min found and after transition phase
+	        } while (mTotal >= 0 || i <= M * 2); // local minimum found and after transition phase
 //	        System.out.println("m1s="+m1s.toString());
 //			System.out.println("m2s="+m2s.toString());
 //			System.out.println("mTots="+mTots.toString());
@@ -156,21 +140,30 @@ public class CentralizedTemplate implements CentralizedBehavior {
 //	        System.out.println("costs= "+costs.toString());
 	        
 
-	        solutions.add(solution);
+	        solutions.add(solution); // Keep last solution (is not necessarily the best of the try)
 	        
+	        long k_end = System.currentTimeMillis();
+	        long k_duration = k_end - k_start;
+	        maxRunTime = Math.max(maxRunTime, k_duration);
+	        
+	        k++;
         }
-        System.out.println("min cost="+minSolution.cost());
-        System.out.print("solution=[");
-        for (Solution sol : solutions)
-        {
-        	System.out.print(sol.cost() + " ");
-        }
-        System.out.println("];");
-        List<Plan> plans = new ArrayList<Plan>();
+        
+        System.out.println("min cost="+minSolution.cost()); // Best solution found
+        
+        //System.out.print("solution=[");
+        //for (Solution sol : solutions)
+        //{
+        //	System.out.print(sol.cost() + " ");
+        //}
+        //System.out.println("];");
+        
+        
+        List<Plan> plans = new ArrayList<Plan>(); // New empty plan
         
         for (Vehicle vehicle : vehicles)
         {
-        	plans.add(extractPlan(minSolution, vehicle));
+        	plans.add(extractPlan(minSolution, vehicle)); // Create plans for each vehicle
         }
         
         
@@ -181,16 +174,23 @@ public class CentralizedTemplate implements CentralizedBehavior {
         return plans;
     }
     
+    /**
+     * Create an initial feasible solution
+     * 
+     * @param vehicles The available vehicles
+     * @param tasks The available tasks
+     * @return The initial solution
+     */
     private Solution createInitialSolution(List<Vehicle> vehicles, TaskSet tasks)
     {
-    	Solution.rand = new Random();
+    	Solution.rand = new Random(); // Class wide random generator
     	
-    	Solution.taskActions = new TaskAction[tasks.size() * 2];
-    	Solution.vehicles = new Vehicle[vehicles.size()];
-    	Solution.taskActionIndex = new HashMap<Integer, Integer>();
-    	Solution.vehicleIndex = new HashMap<Integer, Integer>();
+    	Solution.taskActions = new TaskAction[tasks.size() * 2]; // Class wide list of all available tasks
+    	Solution.vehicles = new Vehicle[vehicles.size()]; // Class wide list of all available vehicles
+    	Solution.taskActionIndex = new HashMap<Integer, Integer>(); // Class wide map of all available task ids to the index
+    	Solution.vehicleIndex = new HashMap<Integer, Integer>(); // Class wide map of all available vehicle ids to the index
     	
-    	ArrayList<LinkedList<TaskAction>> chains = new ArrayList<LinkedList<TaskAction>>();    	
+    	ArrayList<LinkedList<TaskAction>> chains = new ArrayList<LinkedList<TaskAction>>(); // TaskAction chains for the vehicles	
     
     	for (int i = 0; i<vehicles.size(); i++)
     	{
@@ -206,14 +206,13 @@ public class CentralizedTemplate implements CentralizedBehavior {
     	
     	for (Task task : tasks)
     	{
-    		//System.out.println(task.toString());
-    		TaskAction pickup = new TaskAction(task, TaskActionType.Pickup);
-    		TaskAction delivery = new TaskAction(task, TaskActionType.Delivery);
+    		TaskAction pickup = new TaskAction(task, TaskActionType.Pickup); // Create the task pickup action
+    		TaskAction delivery = new TaskAction(task, TaskActionType.Delivery); // Create the task delivery action
     		
-    		pickup.setLinkedTaskAction(delivery);
+    		pickup.setLinkedTaskAction(delivery); // Connect the two actions
     		delivery.setLinkedTaskAction(pickup);
    		
-    		Solution.taskActions[taskActionIndex] = pickup;
+    		Solution.taskActions[taskActionIndex] = pickup; // Register the actions class wide
     		Solution.taskActions[taskActionIndex + 1] = delivery;
         	Solution.taskActionIndex.put(pickup.getId(), taskActionIndex);
         	Solution.taskActionIndex.put(delivery.getId(), taskActionIndex + 1);
@@ -222,11 +221,11 @@ public class CentralizedTemplate implements CentralizedBehavior {
     		
     		boolean assigned = false;
     		int count = 0;
-    		do
+    		do // Find a vehicle which can carry the task
     		{
-    			if (task.weight <= vehicles.get(i).capacity())
+    			if (task.weight <= vehicles.get(i).capacity()) // If it is able to carry the task, it gets it
     			{
-    	    		chains.get(i).add(pickup);
+    	    		chains.get(i).add(pickup); // Directly pickup and deliver the task
     	    		chains.get(i).add(delivery);
     	    		assigned = true;
     			}
@@ -236,7 +235,7 @@ public class CentralizedTemplate implements CentralizedBehavior {
     		while (!assigned && count < vehicles.size());
     		
     		
-    		if (!assigned)
+    		if (!assigned) // Nobody can do the job!
     		{
     			System.out.println("Task too heavy for all vehicles!");
     		}   		
@@ -246,56 +245,67 @@ public class CentralizedTemplate implements CentralizedBehavior {
     	return new Solution(chains);
     }
     
+    /**
+     * Find the best permutation from the current solution
+     * @param previousSolution Current solution
+     * @param solutions Permutations of the current solution
+     * @return The next solution
+     */
     private Solution findBestSolution(Solution previousSolution, Solution[] solutions)
     {
     	Solution bestSolution = null;
     	double bestSolutionCost = 0;
     	
     	
-    	// TODO pick at random
     	for (Solution solution : solutions)
     	{
-    		//System.out.println("Sol cost:" + solution.cost());
-    		if (bestSolution == null || bestSolutionCost > solution.cost()) 
+    		if (bestSolution == null || bestSolutionCost > solution.cost())  // Check if solution is better
     		{
     			bestSolution = solution;
     			bestSolutionCost = solution.cost();
     		}
        	}
     	
-		return rand.nextDouble() > P ? previousSolution : bestSolution;
+		return rand.nextDouble() > P ? previousSolution : bestSolution; // Decide of old solution is kept or the new solution
     }
     
+    /**
+     * Extract the plan for a vehicle of a solution
+     * 
+     * @param solution The solution
+     * @param vehicle The vehicle
+     * @return The plan for the vehicle
+     */
     private Plan extractPlan(Solution solution, Vehicle vehicle)
     {
-        City current = vehicle.getCurrentCity();
+        City current = vehicle.getCurrentCity(); // Starting city for the vehicle
         Plan plan = new Plan(current);
         
-        TaskAction nextTaskAction = solution.nextTaskAction(vehicle);
+        TaskAction nextTaskAction = solution.nextTaskAction(vehicle); // Get first action for the vehicle
         
         while (nextTaskAction != null)
         {
-        	for (City city : current.pathTo(nextTaskAction.getCity())) 
+        	for (City city : current.pathTo(nextTaskAction.getCity())) // Move to next action
         	{
                 plan.appendMove(city);
             }
-        	if (nextTaskAction.getType() == TaskActionType.Pickup)
+        	if (nextTaskAction.getType() == TaskActionType.Pickup) // Perform pickup
         	{
             	plan.appendPickup(nextTaskAction.getTask());        		
         	}
-        	else
+        	else // Perform delivery
         	{
             	plan.appendDelivery(nextTaskAction.getTask());        		        		
         	}
-        	current = nextTaskAction.getCity();
-        	nextTaskAction = solution.nextTaskAction(nextTaskAction);
+        	current = nextTaskAction.getCity(); // Update current city
+        	nextTaskAction = solution.nextTaskAction(nextTaskAction); // Get next task
         }
         
         return plan;
     }
 
 
-    private Plan naivePlan(Vehicle vehicle, TaskSet tasks) {
+    /*private Plan naivePlan(Vehicle vehicle, TaskSet tasks) {
         City current = vehicle.getCurrentCity();
         Plan plan = new Plan(current);
 
@@ -318,5 +328,5 @@ public class CentralizedTemplate implements CentralizedBehavior {
             current = task.deliveryCity;
         }
         return plan;
-    }
+    }*/
 }

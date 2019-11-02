@@ -12,7 +12,8 @@ import logist.topology.Topology.City;
 
 public class Solution {
 
-	static final int maxPermutationTries = 20;
+	static final int maxPermutationTries = 20; // The max tries to permute a solution before is abandoned
+	static final double T = 0.5; // The repartition of permutation type 1 and 2
 
 	static public TaskAction[] taskActions = null; // All task actions available
 	static public Vehicle[] vehicles = null; // All vehicles available
@@ -28,6 +29,11 @@ public class Solution {
 	static public Random rand;
 	
 	
+	/**
+	 * Create a solution from lists of tasks, all other lists are generated internally
+	 * 
+	 * @param chainMap The list of task lists
+	 */
 	Solution(ArrayList<LinkedList<TaskAction>> chainMap)
 	{
 	  	Integer timeMap[] = new Integer[taskActions.length];
@@ -38,11 +44,18 @@ public class Solution {
 		this.timeMap = timeMap;
 		this.vehicleMap = vehicleMap;
 				
-    	updateTime();
-    	updateVehicle();
+    	updateTime(); // Create the time array map
+    	updateVehicle(); // Create vehicle array map
 
 	}
 		
+	/**
+	 * Create a solution from an existing solution
+	 * 
+	 * @param chainMap The list of task lists
+	 * @param timeMap The time mapping
+	 * @param vehicleMap The vehicle mapping
+	 */
 	Solution(
 			ArrayList<LinkedList<TaskAction>> chainMap, 
 			Integer[] timeMap, 
@@ -54,19 +67,27 @@ public class Solution {
 	}
 		
 	
+	/**
+	 * Get n permutations of the current solution
+	 * 
+	 * @param n
+	 * @return The permutations
+	 */
 	public Solution[] getPermutations(int n)
 	{
 		Solution[] permutations = new Solution[n];
 		for (int i = 0; i<n; i++)
 		{
-			// Duplicate
+			// Duplicate the chain list
 			ArrayList<LinkedList<TaskAction>> duplicatedChainMap = new ArrayList<LinkedList<TaskAction>>();
 			
+			// Duplicate the chain lists
 			for (LinkedList list : chainMap)
 			{
 				duplicatedChainMap.add((LinkedList)list.clone());
 			}
 			
+			// Create the permutation from current solution
 			permutations[i] = new Solution(
 					duplicatedChainMap,
 					timeMap.clone(),
@@ -76,11 +97,19 @@ public class Solution {
 		return permutations;
 	}
 	
+	/**
+	 * Create a random permutation
+	 */
 	public void permute()
 	{
 		permute(rand.nextInt(2)); // Choose random permutation mode
 	}
 	
+	/**
+	 * Create a specific permutation
+	 * 
+	 * @param i
+	 */
 	public void permute(int i)
 	{
 		for (int tries = 0; tries<maxPermutationTries; tries++)
@@ -145,14 +174,17 @@ public class Solution {
 				list.remove(time(deliveryTaskAction).intValue()); // First delivery, as this does not shift the index
 				list.remove(time(pickupTaskAction).intValue());
 				
+				// Append pickup to vehicle and update lists
 				appendToList.add(pickupTaskAction);
 				updateVehicle(appendToVehicle, pickupTaskAction);
 				appendTime(appendToVehicle, pickupTaskAction);
 				
+				// Append delivery to vehicle and update lists
 				appendToList.add(deliveryTaskAction);
 				updateVehicle(appendToVehicle, deliveryTaskAction);
 				appendTime(appendToVehicle, deliveryTaskAction);
 				
+				// Update time of old vehicle
 				updateTime(vehicle);
 				
 				return;
@@ -162,7 +194,11 @@ public class Solution {
 		System.out.println("No permutation found!");
 	}
 
-	
+	/**
+	 * Validate the constraints
+	 * 
+	 * @return
+	 */
 	public boolean validateConstraints()
 	{
 		boolean valid = true;
@@ -175,6 +211,12 @@ public class Solution {
 		return valid;
 	}
 
+	/**
+	 * Validate the constraints in respect to a vehicle
+	 * 
+	 * @param v The vehicle
+	 * @return
+	 */
 	public boolean validateConstraints(Vehicle v)
 	{
 		int remainingCapacity = v.capacity();
@@ -203,6 +245,9 @@ public class Solution {
 		return vehicleTasks.isEmpty();
 	}
 
+	/**
+	 * Update the vehicle list
+	 */
 	public void updateVehicle()
 	{
 		
@@ -212,6 +257,11 @@ public class Solution {
 		}
 	}
 
+	/**
+	 * Update the vehicle list for a vehicle
+	 * 
+	 * @param v The vehicle
+	 */
 	private void updateVehicle(Vehicle v)
 	{				
 		for (TaskAction currentTaskAction : chainMap.get(vehicleIndex.get(v.id())))
@@ -220,11 +270,20 @@ public class Solution {
 		}
 	}
 
+	/**
+	 * Update the vehicle list for a task of a vehicle
+	 * 
+	 * @param v The vehicle
+	 * @param t The task
+	 */
 	public void updateVehicle(Vehicle v, TaskAction t)
 	{
 		vehicleMap[taskActionIndex.get(t.getId())] = v;
 	}
 
+	/**
+	 * Update the time list
+	 */
 	public void updateTime()
 	{
 		
@@ -234,6 +293,11 @@ public class Solution {
 		}
 	}
 
+	/**
+	 * Update the time list of a vehicle
+	 * 
+	 * @param v The vehicle
+	 */
 	private void updateTime(Vehicle v)
 	{		
 		int i = 0;
@@ -245,6 +309,12 @@ public class Solution {
 		}
 	}
 
+	/**
+	 * Swap the timing in the list of two tasks
+	 * 
+	 * @param t1 The task 1
+	 * @param t2 The task 2
+	 */
 	private void swapTime(TaskAction t1, TaskAction t2)
 	{
 		int t1Time = time(t1);
@@ -253,12 +323,23 @@ public class Solution {
 		timeMap[taskActionIndex.get(t2.getId())] = t1Time;
 	}
 
+	/**
+	 * Append the task timing to the list for a task of a vehicle
+	 * 
+	 * @param v The vehicle
+	 * @param t The task
+	 */
 	private void appendTime(Vehicle v, TaskAction t)
 	{
 		timeMap[taskActionIndex.get(t.getId())] = chainMap.get(vehicleIndex.get(v.id())).size() - 1;
 	}
 	
 	
+	/**
+	 * Calculate the cost of a solution
+	 * 
+	 * @return
+	 */
 	public double cost()
 	{
 		double accumulatedCost = 0.0;
@@ -271,11 +352,23 @@ public class Solution {
 		return accumulatedCost;
 	}
 
+	/**
+	 * Calculate the cost of a vehicle
+	 * 
+	 * @param v The vehicle
+	 * @return
+	 */
 	public double cost(Vehicle v)
 	{
 		return v.costPerKm();
 	}
 	
+	/**
+	 * Calculate the distance of a vehicle
+	 * 
+	 * @param v The vehicle
+	 * @return
+	 */
 	public double dist(Vehicle v)
 	{
 		double accumulatedDist = 0.0;
@@ -292,18 +385,37 @@ public class Solution {
 		return accumulatedDist;
 	}
 	
+	/**
+	 * Calculate the distance between to task actions
+	 * 
+	 * @param t1 The task action 1
+	 * @param t2 The task action 2
+	 * @return
+	 */
 	public double dist(TaskAction t1, TaskAction t2)
 	{
 		return t2 == null ? 0 : t1.getCity().distanceTo(t2.getCity());
 	}
 
+	/**
+	 * Calculate the distance between a vehicle start location and a task action
+	 * 
+	 * @param v The vehicle
+	 * @param t The task action
+	 * @return
+	 */
 	public double dist(Vehicle v, TaskAction t)
 	{
 		return t == null ? 0 : v.homeCity().distanceTo(t.getCity());
 	}
 
 	
-	
+	/**
+	 * Get the next task action for a task action
+	 * 
+	 * @param taskAction The task action
+	 * @return
+	 */
 	public TaskAction nextTaskAction(TaskAction taskAction)
 	{
 		Vehicle vehicle = vehicle(taskAction);
@@ -312,21 +424,43 @@ public class Solution {
 		
 		return t >= list.size() ? null : list.get(t);
 	}
+	
+	/**
+	 * Get the first task action for a vehicle
+	 * 
+	 * @param vehicle The vehicle
+	 * @return
+	 */
 	public TaskAction nextTaskAction(Vehicle vehicle)
 	{
 		LinkedList<TaskAction> list = chainMap.get(vehicleIndex.get(vehicle.id()));
 		
 		return list.isEmpty() ? null : list.get(0);
 	}
+	
+	/**
+	 * Fet the time of a task action
+	 * 
+	 * @param taskAction The task action
+	 * @return
+	 */
 	public Integer time(TaskAction taskAction)
 	{
 		return timeMap[taskActionIndex.get(taskAction.getId())];
 	}
+	
+	/**
+	 * Get the vehicle of a task action
+	 * 
+	 * @param taskAction The task action
+	 * @return
+	 */
 	public Vehicle vehicle(TaskAction taskAction)
 	{
 		return vehicleMap[taskActionIndex.get(taskAction.getId())];
 	}
 	
+	@Override
 	public String toString()
 	{
 		String s = "Solution: " + this.cost() + "\n"; 
