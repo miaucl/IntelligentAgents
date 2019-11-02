@@ -37,7 +37,7 @@ public class CentralizedTemplate implements CentralizedBehavior
     private long timeout_setup;
     private long timeout_plan;
     
-    private static final double P = 0.7; // Probability to pick old solution instead of new permutation
+    private static final double P = 0.8; // Probability to pick old solution instead of new permutation
     private static final int N = 10; // Number of solution space permutations calculated per iteration
     private static final int M = 1000; // The averaging filter applied to the cost of the solutions
     private static final double K = 2000; // Max tries to find best solution
@@ -81,13 +81,13 @@ public class CentralizedTemplate implements CentralizedBehavior
         Solution  minSolution = intialSolution; // Keep the best solution over all tries
         int k = 0; 
         long maxRunTime = 0; // Keep the longest run as an estimation to stop before reaching the max time limit
-        long plannedLastRun = time_start + 60 * 1000; // 1 minute horizon
+        long plannedLastRun = time_start + timeout_plan; // Timeout horizon
         while (k < K && 2 * maxRunTime < plannedLastRun - System.currentTimeMillis()) // Stop due to max k or out of time
         {
         	long k_start = System.currentTimeMillis(); // Get start timestamp of try k
         	
         	Solution solution = intialSolution; // Start from the initial solution
-        	System.out.println("k = "+k + ", d=" + (plannedLastRun - System.currentTimeMillis()));
+        	System.out.println("k = "+k + ", d=" + (plannedLastRun - System.currentTimeMillis()) + "ms remaining");
         
         
 	        ArrayList<Double> costs = new ArrayList<Double>(); // List of the cost evolution
@@ -133,11 +133,11 @@ public class CentralizedTemplate implements CentralizedBehavior
 		        	minSolution=solution;
 		        }
 	        } while (mTotal >= 0 || i <= M * 2); // local minimum found and after transition phase
-//	        System.out.println("m1s="+m1s.toString());
-//			System.out.println("m2s="+m2s.toString());
-//			System.out.println("mTots="+mTots.toString());
-//	        
-//	        System.out.println("costs= "+costs.toString());
+	        //System.out.println("m1s="+m1s.toString());
+			//System.out.println("m2s="+m2s.toString());
+			//System.out.println("mTots="+mTots.toString());
+	        
+	        //System.out.println("costs= "+costs.toString());
 	        
 
 	        solutions.add(solution); // Keep last solution (is not necessarily the best of the try)

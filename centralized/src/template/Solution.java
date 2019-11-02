@@ -102,7 +102,7 @@ public class Solution {
 	 */
 	public void permute()
 	{
-		permute(rand.nextInt(2)); // Choose random permutation mode
+		permute(rand.nextDouble() > T ? 0 : 1); // Choose random permutation mode
 	}
 	
 	/**
