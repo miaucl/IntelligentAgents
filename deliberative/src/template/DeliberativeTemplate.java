@@ -219,6 +219,8 @@ public class DeliberativeTemplate implements DeliberativeBehavior
 		
 		System.out.println("TIME: T= "+currentTime+" ms");
 		
+		System.out.println("COST: C = " + plan.totalDistance() * vehicle.costPerKm());;
+		
 		
 		return plan;
 	}
