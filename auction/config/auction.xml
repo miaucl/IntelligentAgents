@@ -10,7 +10,7 @@
 	<topology import="config/topology/england.xml" />
 	
 	<!-- load agents from an external file -->
-	<agents import="config/agents.xml" />
+	<agents import="config/agents2.xml" />
 	
 	<!-- define task distribution -->
 	<tasks number="20" rngSeed="123456">

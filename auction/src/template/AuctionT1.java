@@ -36,13 +36,13 @@ public class AuctionT1 implements AuctionBehavior
     private Agent agent;
     private long timeout_setup;
     private long timeout_plan;
+    private long timeout_bid;
     
 	private Random random;
-	private Vehicle vehicle;
-	private City currentCity;
 	private Solution lastBestSolution;
+	private Solution lastBestProposedSolution;
 	
-	private TaskSet acceptedTasks;
+	private ArrayList<Task> acceptedTasks;
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
     private static final int N = 10; // Number of solution space permutations calculated per iteration
@@ -51,11 +51,12 @@ public class AuctionT1 implements AuctionBehavior
 
 	@Override
 	public void setup(Topology topology, TaskDistribution distribution,
-			Agent agent) {
+			Agent agent) 
+	{
 		
 		LogistSettings ls = null;
         try {
-            ls = Parsers.parseSettings("config" + File.separator + "settings_default.xml");
+            ls = Parsers.parseSettings("config" + File.separator + "settings_auction2.xml");
         }
         catch (Exception exc) {
             System.out.println("There was a problem loading the configuration file.");
@@ -65,61 +66,73 @@ public class AuctionT1 implements AuctionBehavior
         timeout_setup = ls.get(LogistSettings.TimeoutKey.SETUP);
         // the plan method cannot execute more than timeout_plan milliseconds
         timeout_plan = ls.get(LogistSettings.TimeoutKey.PLAN);
+        // the bid method cannot execute more than timeout_bid milliseconds
+        timeout_bid = ls.get(LogistSettings.TimeoutKey.BID);
 
 		this.topology = topology;
 		this.distribution = distribution;
 		this.agent = agent;
-		this.vehicle = agent.vehicles().get(0);
-		this.currentCity = vehicle.homeCity();
+		
+		this.acceptedTasks = new ArrayList<Task>();
 
-		long seed = -9019554669489983951L * currentCity.hashCode() * agent.id();
+		long seed = -9019554669489983951L * agent.id();
 		this.random = new Random(seed);
 	}
 	
 	public void auctionResult(Task previous, int winner, Long[] bids) 
 	{
-		if (winner == agent.id()) {
+		if (winner == agent.id()) 
+		{
 			acceptedTasks.add(previous); //add the task definitively
-			currentCity = previous.deliveryCity;
-			
-			 for (Vehicle vehicle : agent.vehicles())
-	        {
-	        	plans.add(extractPlan(lastBestSolution, vehicle)); // Create plans for each vehicle
-	        }
-			 
+			lastBestSolution = lastBestProposedSolution;
 		}
 	}
 	
 	@Override
 	public Long askPrice(Task task) 
 	{
+		for (Vehicle vehicle : agent.vehicles())
+		{
+			if (vehicle.capacity() < task.weight)
+			{
+				System.out.println("Task " + task.toString() + " too heavy!");
+				return null;		
+			}
+		}
+		
+		double lastCost = (lastBestSolution != null) ? lastBestSolution.cost() : 0;
+
 		acceptedTasks.add(task); //add the task to test
-		Solution bestSolution = findBestSolution(agent.vehicles(),acceptedTasks);
+		Solution bestSolution = findBestSolution(agent.vehicles(),acceptedTasks,timeout_bid);
 		acceptedTasks.remove(task); //remove the task
-		double marginalCost = bestSolution.cost();
-		lastBestSolution = bestSolution;
+		double cost = bestSolution.cost();
+		double marginalCost = cost - lastCost;
+				
+		lastBestProposedSolution = bestSolution;
 
-		if (vehicle.capacity() < task.weight)
-			return null;
 
-
-		double ratio = 1.0 + (random.nextDouble() * 0.05 * task.id);
+		double ratio = 1.0 + (random.nextDouble() * 0.05);
 		double bid = ratio * marginalCost;
 
 		return (long) Math.round(bid);
 	}
 	
-	public Solution findBestSolution(List<Vehicle> vehicles, TaskSet tasks)
+	public Solution findBestSolution(List<Vehicle> vehicles, ArrayList<Task> tasks, long timeout)
 	{
+        System.out.println("Find best solution for " + tasks.size() + " tasks");
+		timeout = Math.min(1000 * tasks.size(), timeout);// TODO REMOVE AS IT IS ONLY FOR TEST
+				
 		long time_start = System.currentTimeMillis(); // Get start timestamp of the planning method
         
-        Solution intialSolution = createInitialSolution(vehicles, tasks); // Create the initial solution (same for all tries)
+        Solution intialSolution = createInitialSolution(vehicles, tasks); // Create the initial solution (same for all tries)            
+		if (tasks.size() == 1) return intialSolution;
+        
         ArrayList<Solution> solutions = new ArrayList<Solution>(); // Keep track of solutions found
         Solution  minSolution = intialSolution; // Keep the best solution over all tries
         int k = 0; 
         long maxRunTime = 0; // Keep the longest run as an estimation to stop before reaching the max time limit
-        long plannedLastRun = time_start + timeout_plan; // Timeout horizon
-        while (k < K && 2 * maxRunTime < plannedLastRun - System.currentTimeMillis()) // Stop due to max k or out of time
+        long plannedLastRun = time_start + timeout; // Timeout horizon
+        while (k < K && 10 * maxRunTime < plannedLastRun - System.currentTimeMillis()) // Stop due to max k or out of time
         {
         	long k_start = System.currentTimeMillis(); // Get start timestamp of try k
         	
@@ -193,10 +206,17 @@ public class AuctionT1 implements AuctionBehavior
     @Override
     public List<Plan> plan(List<Vehicle> vehicles, TaskSet tasks) 
     {
-
+		Solution bestSolution = findBestSolution(agent.vehicles(),acceptedTasks,timeout_plan);
+		
+		Solution reallyBestSolution = (lastBestSolution == null || bestSolution.cost() < lastBestSolution.cost()) ? bestSolution : lastBestSolution;
         
+        List<Plan> plans = new ArrayList<Plan>(); // New empty plan
         
-        
+        for (Vehicle vehicle : vehicles)
+        {
+        	plans.add(extractPlan(reallyBestSolution, vehicle)); // Create plans for each vehicle
+        }
+  
         return plans;
     }
     
@@ -207,7 +227,7 @@ public class AuctionT1 implements AuctionBehavior
      * @param tasks The available tasks
      * @return The initial solution
      */
-    private Solution createInitialSolution(List<Vehicle> vehicles, TaskSet tasks)
+    private Solution createInitialSolution(List<Vehicle> vehicles, ArrayList<Task> tasks)
     {
     	Solution.rand = new Random(); // Class wide random generator
     	
