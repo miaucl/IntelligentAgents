@@ -86,6 +86,16 @@ public class AuctionTemplate implements AuctionBehavior
 		while (plans.size() < vehicles.size())
 			plans.add(Plan.EMPTY);
 
+        double cost = planVehicle1.totalDistance() * vehicle.costPerKm();
+        double reward = 0;
+
+        for (Task task : tasks)
+        {
+        	reward += task.reward;
+        }
+        
+        System.out.println("TEMPLATE: COST: " + cost + " REWARD: " + reward + " => " + (reward - cost));
+
 		return plans;
 	}
 

@@ -56,7 +56,7 @@ public class AuctionT1 implements AuctionBehavior
 		
 		LogistSettings ls = null;
         try {
-            ls = Parsers.parseSettings("config" + File.separator + "settings_auction2.xml");
+            ls = Parsers.parseSettings("config" + File.separator + "settings_auction.xml");
         }
         catch (Exception exc) {
             System.out.println("There was a problem loading the configuration file.");
@@ -91,13 +91,15 @@ public class AuctionT1 implements AuctionBehavior
 	@Override
 	public Long askPrice(Task task) 
 	{
+		boolean canCarry = false;
 		for (Vehicle vehicle : agent.vehicles())
 		{
-			if (vehicle.capacity() < task.weight)
-			{
-				System.out.println("Task " + task.toString() + " too heavy!");
-				return null;		
-			}
+			canCarry |= (vehicle.capacity() >= task.weight);
+		}
+		if (!canCarry)
+		{
+			System.out.println("Task " + task.toString() + " too heavy!");
+			return null;		
 		}
 		
 		double lastCost = (lastBestSolution != null) ? lastBestSolution.cost() : 0;
@@ -130,9 +132,10 @@ public class AuctionT1 implements AuctionBehavior
         ArrayList<Solution> solutions = new ArrayList<Solution>(); // Keep track of solutions found
         Solution  minSolution = intialSolution; // Keep the best solution over all tries
         int k = 0; 
+        long oberheadTime = 1000; // 1s to finish the plan
         long maxRunTime = 0; // Keep the longest run as an estimation to stop before reaching the max time limit
         long plannedLastRun = time_start + timeout; // Timeout horizon
-        while (k < K && 10 * maxRunTime < plannedLastRun - System.currentTimeMillis()) // Stop due to max k or out of time
+        while (k < K && (10 * maxRunTime + oberheadTime) < plannedLastRun - System.currentTimeMillis()) // Stop due to max k or out of time
         {
         	long k_start = System.currentTimeMillis(); // Get start timestamp of try k
         	
@@ -208,14 +211,36 @@ public class AuctionT1 implements AuctionBehavior
     {
 		Solution bestSolution = findBestSolution(agent.vehicles(),acceptedTasks,timeout_plan);
 		
-		Solution reallyBestSolution = (lastBestSolution == null || bestSolution.cost() < lastBestSolution.cost()) ? bestSolution : lastBestSolution;
-        
+		Solution reallyBestSolution = bestSolution;
+		//Solution reallyBestSolution = (lastBestSolution == null || bestSolution.cost() < lastBestSolution.cost()) ? bestSolution : lastBestSolution;
+
+		long time_start = System.currentTimeMillis(); // Get start timestamp of the planning method
+
         List<Plan> plans = new ArrayList<Plan>(); // New empty plan
         
         for (Vehicle vehicle : vehicles)
         {
         	plans.add(extractPlan(reallyBestSolution, vehicle)); // Create plans for each vehicle
         }
+        
+        double cost = reallyBestSolution.cost();
+        double reward = 0;
+
+        for (Task task : acceptedTasks)
+        {
+        	reward += task.reward;
+        }
+
+        System.out.println("Plan for " + agent.vehicles().size() + " vehicles and " + acceptedTasks.size() + " tasks costs " + (reward - cost));
+
+        System.out.println("T1: COST: " + cost + " REWARD: " + reward + " => " + (reward - cost));
+        
+
+       
+        long time_end = System.currentTimeMillis();
+        long time_duration = time_end - time_start;
+        System.out.println("Create plan: " + time_duration + "ms");
+
   
         return plans;
     }
