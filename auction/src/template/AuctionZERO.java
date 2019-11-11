@@ -28,9 +28,9 @@ import logist.topology.Topology.City;
  *
  */
 @SuppressWarnings("unused")
-public class AuctionT1 implements AuctionBehavior  
+public class AuctionZERO implements AuctionBehavior  
 {
-	private String name = "T1";
+	private String name = "ZERO";
 
     private Topology topology;
     private TaskDistribution distribution;
@@ -136,7 +136,7 @@ public class AuctionT1 implements AuctionBehavior
 		lastCostProposed = cost;
 
 		System.out.println(name + "\tLast cost: " + lastCost + "\t cost: " + cost);
-		double ratio = 0.95 + (random.nextDouble() * 0.1);
+		double ratio = 1.0;
 		double bid = ratio * marginalCost;
 
 		return (long) Math.round(bid);

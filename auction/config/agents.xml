@@ -8,9 +8,17 @@
 		<set class-path="bin/"/>
 		<set class-name="template.AuctionTemplate"/>
 	</agent>
+	<agent name="auction-null">
+		<set class-path="bin/"/>
+		<set class-name="template.AuctionNULL"/>
+	</agent>
 	<agent name="auction-t1">
 		<set class-path="bin/"/>
 		<set class-name="template.AuctionT1"/>
+	</agent>
+	<agent name="auction-zero">
+		<set class-path="bin/"/>
+		<set class-name="template.AuctionZERO"/>
 	</agent>
 	
 </agents>
