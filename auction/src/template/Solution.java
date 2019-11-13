@@ -191,7 +191,7 @@ public class Solution {
 			}	
 		}
 		
-		System.out.println("No permutation found!");
+		//System.out.println("No permutation found!");
 	}
 
 	/**

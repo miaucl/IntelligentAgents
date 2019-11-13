@@ -52,6 +52,9 @@ public class AuctionT1 implements AuctionBehavior
 	private ArrayList<Long> myBids;
 	private ArrayList<Long> hisBids;
 	
+	private  List<Plan> lastBestPlans = new ArrayList<Plan>(); // New empty plan;
+	private  List<Plan> lastProposedPlans;
+	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
     private static final int N = 10; // Number of solution space permutations calculated per iteration
@@ -90,7 +93,10 @@ public class AuctionT1 implements AuctionBehavior
 		this.hisBids = new ArrayList<Long>();
 		this.myTaskRewards = 0;
 		this.hisTaskRewards = 0;
-
+		
+		
+		
+		
 		long seed = -9019554669489983951L * agent.id();
 		this.random = new Random(seed);
 	}
@@ -104,12 +110,18 @@ public class AuctionT1 implements AuctionBehavior
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
 			lastCost = lastCostProposed;
+			lastBestPlans=lastProposedPlans;
+			
+			
 		}
 		else
 		{
 			hisTaskRewards += previous.reward;
 			hisAcceptedTasks.add(previous);
 		}
+		
+		//System.out.println("agentID= "+agent.id()+ " cost= "+lastBestSolution.cost()+" "+System.currentTimeMillis());
+		
 	}
 	
 	@Override
@@ -132,10 +144,16 @@ public class AuctionT1 implements AuctionBehavior
 		myAcceptedTasks.remove(task); //remove the task
 		double cost = bestSolution.cost();
 		double marginalCost = cost - lastCost;
-				
+		
+		lastProposedPlans=new ArrayList<Plan>();
+		 for (Vehicle vehicle : agent.vehicles())
+        {
+			 lastProposedPlans.add(extractPlan(bestSolution, vehicle)); // Create plans for each vehicle
+        }
+	        
 		lastCostProposed = cost;
 
-		System.out.println(name + "\tLast cost: " + lastCost + "\t cost: " + cost);
+		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
 		double ratio = 0.95 + (random.nextDouble() * 0.1);
 		double bid = ratio * marginalCost;
 
@@ -247,7 +265,8 @@ public class AuctionT1 implements AuctionBehavior
         
         double cost = bestSolution.cost();
 
-
+        if (lastCost < cost)
+        	plans=lastBestPlans;
 
         System.out.println("Plan for " + agent.vehicles().size() + " vehicles and " + myAcceptedTasks.size() + " tasks costs " + (myTaskRewards - cost));
 
