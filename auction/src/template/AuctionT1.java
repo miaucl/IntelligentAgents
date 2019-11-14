@@ -52,9 +52,6 @@ public class AuctionT1 implements AuctionBehavior
 	private ArrayList<Long> myBids;
 	private ArrayList<Long> hisBids;
 	
-	private  List<Plan> lastBestPlans = new ArrayList<Plan>(); // New empty plan;
-	private  List<Plan> lastProposedPlans;
-	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
     private static final int N = 10; // Number of solution space permutations calculated per iteration
@@ -110,8 +107,7 @@ public class AuctionT1 implements AuctionBehavior
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
 			lastCost = lastCostProposed;
-			lastBestPlans=lastProposedPlans;
-			
+	
 			
 		}
 		else
@@ -144,12 +140,6 @@ public class AuctionT1 implements AuctionBehavior
 		myAcceptedTasks.remove(task); //remove the task
 		double cost = bestSolution.cost();
 		double marginalCost = cost - lastCost;
-		
-		lastProposedPlans=new ArrayList<Plan>();
-		 for (Vehicle vehicle : agent.vehicles())
-        {
-			 lastProposedPlans.add(extractPlan(bestSolution, vehicle)); // Create plans for each vehicle
-        }
 	        
 		lastCostProposed = cost;
 
@@ -264,9 +254,6 @@ public class AuctionT1 implements AuctionBehavior
         }
         
         double cost = bestSolution.cost();
-
-        if (lastCost < cost)
-        	plans=lastBestPlans;
 
         System.out.println("Plan for " + agent.vehicles().size() + " vehicles and " + myAcceptedTasks.size() + " tasks costs " + (myTaskRewards - cost));
 
