@@ -97,8 +97,8 @@ public class AuctionZERO implements AuctionBehavior
 	
 	public void auctionResult(Task previous, int winner, Long[] bids) 
 	{
-		myBids.add(bids[0]);
-		hisBids.add(bids[1]);
+		myBids.add(bids[agent.id()]);
+		hisBids.add(bids[agent.id() == 0 ? 1 : 0]); // Assuming only 2 agents play
 		if (winner == agent.id()) 
 		{
 			myTaskRewards += previous.reward;

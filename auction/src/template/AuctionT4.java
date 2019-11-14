@@ -28,9 +28,9 @@ import logist.topology.Topology.City;
  *
  */
 @SuppressWarnings("unused")
-public class AuctionNULL implements AuctionBehavior  
+public class AuctionT4 implements AuctionBehavior  
 {
-	private String name = "NULL";
+	private String name = "T4";
 
     private Topology topology;
     private TaskDistribution distribution;
@@ -51,6 +51,9 @@ public class AuctionNULL implements AuctionBehavior
 	
 	private ArrayList<Long> myBids;
 	private ArrayList<Long> hisBids;
+	
+	private  List<Plan> lastBestPlans = new ArrayList<Plan>(); // New empty plan;
+	private  List<Plan> lastProposedPlans;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
@@ -90,7 +93,10 @@ public class AuctionNULL implements AuctionBehavior
 		this.hisBids = new ArrayList<Long>();
 		this.myTaskRewards = 0;
 		this.hisTaskRewards = 0;
-
+		
+		
+		
+		
 		long seed = -9019554669489983951L * agent.id();
 		this.random = new Random(seed);
 	}
@@ -104,12 +110,18 @@ public class AuctionNULL implements AuctionBehavior
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
 			lastCost = lastCostProposed;
+			lastBestPlans=lastProposedPlans;
+			
+			
 		}
 		else
 		{
 			hisTaskRewards += previous.reward;
 			hisAcceptedTasks.add(previous);
 		}
+		
+		//System.out.println("agentID= "+agent.id()+ " cost= "+lastBestSolution.cost()+" "+System.currentTimeMillis());
+		
 	}
 	
 	@Override
@@ -132,16 +144,33 @@ public class AuctionNULL implements AuctionBehavior
 		myAcceptedTasks.remove(task); //remove the task
 		double cost = bestSolution.cost();
 		double marginalCost = cost - lastCost;
-				
+		
+		lastProposedPlans=new ArrayList<Plan>();
+		 for (Vehicle vehicle : agent.vehicles())
+        {
+			 lastProposedPlans.add(extractPlan(bestSolution, vehicle)); // Create plans for each vehicle
+        }
+	        
 		lastCostProposed = cost;
+		
+		double countTasks = Solution.taskActions.length/2;
+		
+		// Zero
+		double bid = 1.0 * marginalCost;
+		
+		// Model: cost * C * (1 - A * e^(-count(tasks))) * U(1,0.1)
+		double C = 1.2;
+		double A = 0.2;
+		double span = 0.1;
+		bid *= C * (1 - A * Math.exp(-countTasks)) * (1 + random.nextDouble() * span - (span/2));
 
+		// Constraint: Min value at 0
+		bid = Math.max(bid, 0);
+		
 
-		System.out.println(bestSolution.cost());
-		System.out.println("Last cost: " + lastCost + "\t cost: " + cost);
-		double ratio = 1.0;
-		double bid = ratio * marginalCost;
+		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
 
-		return null;
+		return (long) Math.round(bid);
 	}
 	
 	public Solution findBestSolution(List<Vehicle> vehicles, ArrayList<Task> tasks, long timeout)
@@ -228,8 +257,8 @@ public class AuctionNULL implements AuctionBehavior
         }
         
         //System.out.println("min_cost="+minSolution.cost()); // Best solution found
-        //System.out.println("my_bids="+myBids);
-        //System.out.println("his_bids="+hisBids);
+        System.out.println("my_bids="+myBids);
+        System.out.println("his_bids="+hisBids);
         return minSolution;
 	}
 
@@ -248,8 +277,6 @@ public class AuctionNULL implements AuctionBehavior
         }
         
         double cost = bestSolution.cost();
-
-
 
         System.out.println("Plan for " + agent.vehicles().size() + " vehicles and " + myAcceptedTasks.size() + " tasks costs " + (myTaskRewards - cost));
 

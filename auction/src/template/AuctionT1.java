@@ -100,8 +100,8 @@ public class AuctionT1 implements AuctionBehavior
 	
 	public void auctionResult(Task previous, int winner, Long[] bids) 
 	{
-		myBids.add(bids[0]);
-		hisBids.add(bids[1]);
+		myBids.add(bids[agent.id()]);
+		hisBids.add(bids[agent.id() == 0 ? 1 : 0]); // Assuming only 2 agents play
 		if (winner == agent.id()) 
 		{
 			myTaskRewards += previous.reward;
@@ -144,7 +144,7 @@ public class AuctionT1 implements AuctionBehavior
 		lastCostProposed = cost;
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
-		double ratio = 0.95 + (random.nextDouble() * 0.1);
+		double ratio = 1.05 + (random.nextDouble() * 0.1);
 		double bid = ratio * marginalCost;
 
 		return (long) Math.round(bid);
@@ -234,8 +234,8 @@ public class AuctionT1 implements AuctionBehavior
         }
         
         //System.out.println("min_cost="+minSolution.cost()); // Best solution found
-        //System.out.println("my_bids="+myBids);
-        //System.out.println("his_bids="+hisBids);
+        System.out.println("my_bids="+myBids);
+        System.out.println("his_bids="+hisBids);
         return minSolution;
 	}
 
