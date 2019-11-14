@@ -53,7 +53,7 @@ public class AuctionT2 implements AuctionBehavior
 	private ArrayList<Long> hisBids;
 	
 	
-	private int sold = 5000;
+	private int sold = 4000;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
