@@ -52,6 +52,8 @@ public class AuctionT2 implements AuctionBehavior
 	private ArrayList<Long> myBids;
 	private ArrayList<Long> hisBids;
 	
+	private ArrayList<Double> myCosts;
+
 	
 	private int sold = 4000;
 	
@@ -91,6 +93,7 @@ public class AuctionT2 implements AuctionBehavior
 		this.hisAcceptedTasks = new ArrayList<Task>();
 		this.myBids = new ArrayList<Long>();
 		this.hisBids = new ArrayList<Long>();
+		this.myCosts = new ArrayList<Double>();
 		this.myTaskRewards = 0;
 		this.hisTaskRewards = 0;
 		
@@ -144,6 +147,7 @@ public class AuctionT2 implements AuctionBehavior
 		double cost = bestSolution.cost();
 		double marginalCost = cost - lastCost;
 		
+		myCosts.add(marginalCost);
 		lastCostProposed = cost;
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
@@ -237,8 +241,6 @@ public class AuctionT2 implements AuctionBehavior
         }
         
         System.out.println("min_cost="+minSolution.cost()); // Best solution found
-        System.out.println("my_bids="+myBids);
-        System.out.println("his_bids="+hisBids);
         return minSolution;
 	}
 
@@ -258,10 +260,12 @@ public class AuctionT2 implements AuctionBehavior
         
         double cost = bestSolution.cost();
 
-        System.out.println("Plan for " + agent.vehicles().size() + " vehicles and " + myAcceptedTasks.size() + " tasks costs " + (myTaskRewards - cost));
+        System.out.println(name + "\tVEHICLES: " + agent.vehicles().size() + "\tTASKS: " + tasks.size() + "\tCOST: " + cost + "\tREWARD: " + myTaskRewards + "\t=> GAIN: " + (myTaskRewards - cost));
 
-        System.out.println(name + "\tCOST: " + cost + " REWARD: " + myTaskRewards + " => " + (myTaskRewards - cost));
-        
+        System.out.println(name + "_costs = " + myCosts);
+        System.out.println(name + "_bids = " + myBids);
+        System.out.println(name + "_counter_bids = " + hisBids);
+       
 
        
         long time_end = System.currentTimeMillis();

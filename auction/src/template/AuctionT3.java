@@ -52,6 +52,8 @@ public class AuctionT3 implements AuctionBehavior
 	private ArrayList<Long> myBids;
 	private ArrayList<Long> hisBids;
 	
+	private ArrayList<Double> myCosts;
+	
 	private  List<Plan> lastBestPlans = new ArrayList<Plan>(); // New empty plan;
 	private  List<Plan> lastProposedPlans;
 	
@@ -91,6 +93,7 @@ public class AuctionT3 implements AuctionBehavior
 		this.hisAcceptedTasks = new ArrayList<Task>();
 		this.myBids = new ArrayList<Long>();
 		this.hisBids = new ArrayList<Long>();
+		this.myCosts = new ArrayList<Double>();
 		this.myTaskRewards = 0;
 		this.hisTaskRewards = 0;
 		
@@ -151,18 +154,29 @@ public class AuctionT3 implements AuctionBehavior
 			 lastProposedPlans.add(extractPlan(bestSolution, vehicle)); // Create plans for each vehicle
         }
 	        
+		myCosts.add(marginalCost);
 		lastCostProposed = cost;
 		
-		double ratio = 1.0 + (random.nextDouble() * 0.1);
+		double countTasks = Solution.taskActions.length/2;
 		
-		// Booster
-		if (Solution.taskActions.length/2 == 0) ratio *= 0.8;
-		if (Solution.taskActions.length/2 > 0 && Solution.taskActions.length/2 < 4) ratio *= 1.5;
-		else ratio *= 1.1;
-			
+		// Zero
+		double bid = 1.0 * marginalCost;
+		
+		// Model: (1+(1-alpha)*((countTasks/tau+1)^exp1)-(1+alpha)*((countTasks/tau+1)^exp2)) * U(1,span)
+		double C = 1.1;
+		double alpha = 0.1;
+		double tau  = 4;
+		double exp1 = -2;
+		double exp2 = -3;
+		double span = 0.1;
+		bid *= C * (1 + (1-alpha)*(Math.pow(countTasks/tau + 1, exp1)) - (1+alpha)*(Math.pow(countTasks/tau + 1, exp2))) * (1 + random.nextDouble() * span - (span/2));
+
+
+		// Constraint: Min value at 89
+		bid = Math.max(bid, 89);
+		
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
-		double bid = ratio * marginalCost;
 
 		return (long) Math.round(bid);
 	}
@@ -251,8 +265,6 @@ public class AuctionT3 implements AuctionBehavior
         }
         
         //System.out.println("min_cost="+minSolution.cost()); // Best solution found
-        System.out.println("my_bids="+myBids);
-        System.out.println("his_bids="+hisBids);
         return minSolution;
 	}
 
@@ -273,10 +285,12 @@ public class AuctionT3 implements AuctionBehavior
         double cost = bestSolution.cost();
 
  
-        System.out.println("Plan for " + agent.vehicles().size() + " vehicles and " + myAcceptedTasks.size() + " tasks costs " + (myTaskRewards - cost));
+        System.out.println(name + "\tVEHICLES: " + agent.vehicles().size() + "\tTASKS: " + tasks.size() + "\tCOST: " + cost + "\tREWARD: " + myTaskRewards + "\t=> GAIN: " + (myTaskRewards - cost));
 
-        System.out.println(name + "\tCOST: " + cost + " REWARD: " + myTaskRewards + " => " + (myTaskRewards - cost));
-        
+        System.out.println(name + "_costs = " + myCosts);
+        System.out.println(name + "_bids = " + myBids);
+        System.out.println(name + "_counter_bids = " + hisBids);
+
 
        
         long time_end = System.currentTimeMillis();

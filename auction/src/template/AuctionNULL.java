@@ -52,6 +52,8 @@ public class AuctionNULL implements AuctionBehavior
 	private ArrayList<Long> myBids;
 	private ArrayList<Long> hisBids;
 	
+	private ArrayList<Double> myCosts;
+	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
     private static final int N = 10; // Number of solution space permutations calculated per iteration
@@ -88,6 +90,7 @@ public class AuctionNULL implements AuctionBehavior
 		this.hisAcceptedTasks = new ArrayList<Task>();
 		this.myBids = new ArrayList<Long>();
 		this.hisBids = new ArrayList<Long>();
+		this.myCosts = new ArrayList<Double>();
 		this.myTaskRewards = 0;
 		this.hisTaskRewards = 0;
 
@@ -133,6 +136,7 @@ public class AuctionNULL implements AuctionBehavior
 		double cost = bestSolution.cost();
 		double marginalCost = cost - lastCost;
 				
+		myCosts.add(marginalCost);
 		lastCostProposed = cost;
 
 
@@ -251,10 +255,12 @@ public class AuctionNULL implements AuctionBehavior
 
 
 
-        System.out.println("Plan for " + agent.vehicles().size() + " vehicles and " + myAcceptedTasks.size() + " tasks costs " + (myTaskRewards - cost));
+        System.out.println(name + "\tVEHICLES: " + agent.vehicles().size() + "\tTASKS: " + tasks.size() + "\tCOST: " + cost + "\tREWARD: " + myTaskRewards + "\t=> GAIN: " + (myTaskRewards - cost));
 
-        System.out.println(name + "\tCOST: " + cost + " REWARD: " + myTaskRewards + " => " + (myTaskRewards - cost));
-        
+        System.out.println(name + "_costs = " + myCosts);
+        System.out.println(name + "_bids = " + myBids);
+        System.out.println(name + "_counter_bids = " + hisBids);
+
 
        
         long time_end = System.currentTimeMillis();
