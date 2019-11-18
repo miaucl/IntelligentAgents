@@ -32,6 +32,10 @@
 		<set class-path="bin/"/>
 		<set class-name="template.AuctionT5"/>
 	</agent>
+	<agent name="auction-t6">
+		<set class-path="bin/"/>
+		<set class-name="template.AuctionT6"/>
+	</agent>
 	<agent name="auction-zero">
 		<set class-path="bin/"/>
 		<set class-name="template.AuctionZERO"/>

@@ -195,7 +195,7 @@ public class AuctionT5 implements AuctionBehavior
 			
 			double onTop = 0.4;
 			double confusionFactor = 1.2;			
-			double offset = 300;
+			double offset = 500;
 			if (myMedian < hisMedian + offset)
 			{
 				if (bid < myMedian) // Approach my median
