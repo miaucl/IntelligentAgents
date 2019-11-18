@@ -213,16 +213,18 @@ public class AuctionT5 implements AuctionBehavior
 				{
 					bid -= Math.abs(myMedian - hisMedian) * onTop;
 				}
-				else // Confuse him with a big bid
-				{
-					bid += Math.abs(myMedian - hisMedian) * confusionFactor;
-				}
+				//else // Confuse him with a big bid
+				//{
+				//	bid += Math.abs(myMedian - hisMedian) * confusionFactor;
+				//}
 			}
 		}
 		
 
-		// Constraint: Min value at 498
-		bid = Math.max(bid, 498);
+		// Constraint: Min value at global min-3, 0 or bid
+		bid = Math.max(0, bid);
+		if (myBids.size() > 0) Math.max(Collections.max(myBids).doubleValue() - 3, bid); 
+		if (hisBids.size() > 0) Math.max(Collections.max(hisBids).doubleValue() - 3, bid); 
 		
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);

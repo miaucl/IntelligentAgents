@@ -3,6 +3,7 @@ package template;
 import java.io.File;
 //the list of imports
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -168,8 +169,10 @@ public class AuctionT4 implements AuctionBehavior
 		double span = 0.1;
 		bid *= C * (1 - A * Math.exp(-countTasks)) * (1 + random.nextDouble() * span - (span/2));
 
-		// Constraint: Min value at 498
-		bid = Math.max(bid, 498);
+		// Constraint: Min value at global min-3, 0 or bid
+		bid = Math.max(0, bid);
+		if (myBids.size() > 0) Math.max(Collections.max(myBids).doubleValue() - 3, bid); 
+		if (hisBids.size() > 0) Math.max(Collections.max(hisBids).doubleValue() - 3, bid); 
 		
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);

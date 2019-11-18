@@ -3,6 +3,7 @@ package template;
 import java.io.File;
 //the list of imports
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -172,8 +173,10 @@ public class AuctionT3 implements AuctionBehavior
 		bid *= C * (1 + (1-alpha)*(Math.pow(countTasks/tau + 1, exp1)) - (1+alpha)*(Math.pow(countTasks/tau + 1, exp2))) * (1 + random.nextDouble() * span - (span/2));
 
 
-		// Constraint: Min value at 489
-		bid = Math.max(bid, 489);
+		// Constraint: Min value at global min-3, 0 or bid
+		bid = Math.max(0, bid);
+		if (myBids.size() > 0) Math.max(Collections.max(myBids).doubleValue() - 3, bid); 
+		if (hisBids.size() > 0) Math.max(Collections.max(hisBids).doubleValue() - 3, bid); 
 		
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
