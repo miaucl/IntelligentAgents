@@ -168,8 +168,8 @@ public class AuctionT4 implements AuctionBehavior
 		double span = 0.1;
 		bid *= C * (1 - A * Math.exp(-countTasks)) * (1 + random.nextDouble() * span - (span/2));
 
-		// Constraint: Min value at 98
-		bid = Math.max(bid, 98);
+		// Constraint: Min value at 498
+		bid = Math.max(bid, 498);
 		
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
