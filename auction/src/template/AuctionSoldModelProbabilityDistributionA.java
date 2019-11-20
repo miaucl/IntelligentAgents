@@ -3,7 +3,6 @@ package template;
 import java.io.File;
 //the list of imports
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,9 +28,9 @@ import logist.topology.Topology.City;
  *
  */
 @SuppressWarnings("unused")
-public class AuctionT7 implements AuctionBehavior  
+public class AuctionSoldModelProbabilityDistributionA implements AuctionBehavior  
 {
-	private String name = "T7";
+	private String name = "SoldModelProbabilityDistribution";
 
     private Topology topology;
     private TaskDistribution distribution;
@@ -154,41 +153,6 @@ public class AuctionT7 implements AuctionBehavior
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
 		//double ratio = 0.95 + (random.nextDouble() * 0.1);
 		double bid = Math.max(marginalCost - (1-distribution.probability(task.deliveryCity, null)) * sold, -sold*0.3);
-		
-		double countTasks = Solution.taskActions.length/2;
-		// Try to keep the median always above the counter bids (after a transition phase of some tasks)
-		if (countTasks > 1)
-		{
-			// Calculate my median bid
-			ArrayList<Long> myBidsSorted = (ArrayList<Long>)myBids.clone();
-			Collections.sort(myBidsSorted);
-			double myMedian;
-			if (myBidsSorted.size() % 2 == 0)
-			    myMedian = (myBidsSorted.get(myBidsSorted.size()/2).doubleValue() + myBidsSorted.get(myBidsSorted.size()/2 - 1).doubleValue())/2;
-			else
-				myMedian = myBidsSorted.get(myBidsSorted.size()/2).doubleValue();
-			
-			
-			// Calculate his median bid
-			ArrayList<Long> hisBidsSorted = (ArrayList<Long>)hisBids.clone();
-			Collections.sort(hisBidsSorted);
-			double hisMedian;
-			if (hisBidsSorted.size() % 2 == 0)
-			    hisMedian = (hisBidsSorted.get(hisBidsSorted.size()/2).doubleValue() + hisBidsSorted.get(hisBidsSorted.size()/2 - 1).doubleValue())/2;
-			else
-				hisMedian = hisBidsSorted.get(hisBidsSorted.size()/2).doubleValue();
-			
-			double onTop = 0.3;			
-
-			if (bid < myMedian) // Approach my median
-			{
-				bid += Math.abs(myMedian - hisMedian) * onTop;
-			}
-			else // Approach my median
-			{
-				bid -= Math.abs(myMedian - hisMedian) * onTop;
-			}
-		}
 
 		return (long) Math.round(bid);
 	}

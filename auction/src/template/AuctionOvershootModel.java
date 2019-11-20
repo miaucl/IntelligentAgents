@@ -3,6 +3,7 @@ package template;
 import java.io.File;
 //the list of imports
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,9 +29,9 @@ import logist.topology.Topology.City;
  *
  */
 @SuppressWarnings("unused")
-public class AuctionT1 implements AuctionBehavior  
+public class AuctionOvershootModel implements AuctionBehavior  
 {
-	private String name = "T1";
+	private String name = "OvershootModel";
 
     private Topology topology;
     private TaskDistribution distribution;
@@ -53,6 +54,9 @@ public class AuctionT1 implements AuctionBehavior
 	private ArrayList<Long> hisBids;
 	
 	private ArrayList<Double> myCosts;
+	
+	private  List<Plan> lastBestPlans = new ArrayList<Plan>(); // New empty plan;
+	private  List<Plan> lastProposedPlans;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
@@ -110,7 +114,8 @@ public class AuctionT1 implements AuctionBehavior
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
 			lastCost = lastCostProposed;
-	
+			lastBestPlans=lastProposedPlans;
+			
 			
 		}
 		else
@@ -143,13 +148,38 @@ public class AuctionT1 implements AuctionBehavior
 		myAcceptedTasks.remove(task); //remove the task
 		double cost = bestSolution.cost();
 		double marginalCost = cost - lastCost;
+		
+		lastProposedPlans=new ArrayList<Plan>();
+		 for (Vehicle vehicle : agent.vehicles())
+        {
+			 lastProposedPlans.add(extractPlan(bestSolution, vehicle)); // Create plans for each vehicle
+        }
 	        
 		myCosts.add(marginalCost);
 		lastCostProposed = cost;
+		
+		double countTasks = Solution.taskActions.length/2;
+		
+		// Zero
+		double bid = 1.0 * marginalCost;
+		
+		// Model: (1+(1-alpha)*((countTasks/tau+1)^exp1)-(1+alpha)*((countTasks/tau+1)^exp2)) * U(1,span)
+		double C = 1.1;
+		double alpha = 0.1;
+		double tau  = 4;
+		double exp1 = -2;
+		double exp2 = -3;
+		double span = 0.1;
+		bid *= C * (1 + (1-alpha)*(Math.pow(countTasks/tau + 1, exp1)) - (1+alpha)*(Math.pow(countTasks/tau + 1, exp2))) * (1 + random.nextDouble() * span - (span/2));
+
+
+		// Constraint: Min value at global min-3, 0 or bid
+		bid = Math.max(0, bid);
+		if (myBids.size() > 0) Math.max(Collections.max(myBids).doubleValue() - 3, bid); 
+		if (hisBids.size() > 0) Math.max(Collections.max(hisBids).doubleValue() - 3, bid); 
+		
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
-		double ratio = 1.05 + (random.nextDouble() * 0.1);
-		double bid = ratio * marginalCost;
 
 		return (long) Math.round(bid);
 	}
@@ -257,6 +287,7 @@ public class AuctionT1 implements AuctionBehavior
         
         double cost = bestSolution.cost();
 
+ 
         System.out.println(name + "\tVEHICLES: " + agent.vehicles().size() + "\tTASKS: " + tasks.size() + "\tCOST: " + cost + "\tREWARD: " + myTaskRewards + "\t=> GAIN: " + (myTaskRewards - cost));
 
         System.out.println(name + "_costs = " + myCosts);

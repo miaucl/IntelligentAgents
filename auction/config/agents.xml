@@ -12,33 +12,13 @@
 		<set class-path="bin/"/>
 		<set class-name="template.AuctionNULL"/>
 	</agent>
-	<agent name="auction-t1">
+	<agent name="auction-T0">
 		<set class-path="bin/"/>
-		<set class-name="template.AuctionT1"/>
+		<set class-name="template.AuctionSoldModelProbabilityDistributionMedianAlignmentA"/>
 	</agent>
-	<agent name="auction-t2">
+	<agent name="auction-T1">
 		<set class-path="bin/"/>
-		<set class-name="template.AuctionT2"/>
-	</agent>
-	<agent name="auction-t3">
-		<set class-path="bin/"/>
-		<set class-name="template.AuctionT3"/>
-	</agent>
-	<agent name="auction-t4">
-		<set class-path="bin/"/>
-		<set class-name="template.AuctionT4"/>
-	</agent>
-	<agent name="auction-t5">
-		<set class-path="bin/"/>
-		<set class-name="template.AuctionT5"/>
-	</agent>
-	<agent name="auction-t6">
-		<set class-path="bin/"/>
-		<set class-name="template.AuctionT6"/>
-	</agent>
-		<agent name="auction-t7">
-		<set class-path="bin/"/>
-		<set class-name="template.AuctionT7"/>
+		<set class-name="template.AuctionSoldModelProbabilityDistributionMedianAlignmentB"/>
 	</agent>
 	<agent name="auction-zero">
 		<set class-path="bin/"/>

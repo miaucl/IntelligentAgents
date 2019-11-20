@@ -3,6 +3,7 @@ package template;
 import java.io.File;
 //the list of imports
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -29,9 +30,9 @@ import logist.topology.Topology.City;
  *
  */
 @SuppressWarnings("unused")
-public class AuctionT4 implements AuctionBehavior  
+public class AuctionExponentialModelMedianAlignmentB implements AuctionBehavior  
 {
-	private String name = "T4";
+	private String name = "ExponentialModelMedianAlignment";
 
     private Topology topology;
     private TaskDistribution distribution;
@@ -167,7 +168,58 @@ public class AuctionT4 implements AuctionBehavior
 		double C = 1.15;
 		double A = 0.3;
 		double span = 0.1;
-		bid *= C * (1 - A * Math.exp(-countTasks)) * (1 + random.nextDouble() * span - (span/2));
+		bid *= C * (1 - A * Math.exp(-countTasks)) * (1 + random.nextDouble() * span - (span/2));	
+		
+		
+		// Try to keep the median always above the counter bids (after a transition phase of some tasks)
+		if (countTasks > 1)
+		{
+			// Calculate my median bid
+			ArrayList<Long> myBidsSorted = (ArrayList<Long>)myBids.clone();
+			Collections.sort(myBidsSorted);
+			double myMedian;
+			if (myBidsSorted.size() % 2 == 0)
+			    myMedian = (myBidsSorted.get(myBidsSorted.size()/2).doubleValue() + myBidsSorted.get(myBidsSorted.size()/2 - 1).doubleValue())/2;
+			else
+				myMedian = myBidsSorted.get(myBidsSorted.size()/2).doubleValue();
+			
+			
+			// Calculate his median bid
+			ArrayList<Long> hisBidsSorted = (ArrayList<Long>)hisBids.clone();
+			Collections.sort(hisBidsSorted);
+			double hisMedian;
+			if (hisBidsSorted.size() % 2 == 0)
+			    hisMedian = (hisBidsSorted.get(hisBidsSorted.size()/2).doubleValue() + hisBidsSorted.get(hisBidsSorted.size()/2 - 1).doubleValue())/2;
+			else
+				hisMedian = hisBidsSorted.get(hisBidsSorted.size()/2).doubleValue();
+			
+			double onTop = 0.4;
+			double confusionFactor = 1.2;			
+			double offset = 500;
+			if (myMedian < hisMedian + offset)
+			{
+				if (bid < myMedian) // Approach my median
+				{
+					bid += Math.abs(myMedian - hisMedian) * onTop;
+				}
+				else // Approach my median
+				{
+					bid -= Math.abs(myMedian - hisMedian) * onTop;
+				}
+			}
+			else
+			{
+				if (bid < myMedian) // Go under his median
+				{
+					bid -= Math.abs(myMedian - hisMedian) * onTop;
+				}
+				//else // Confuse him with a big bid
+				//{
+				//	bid += Math.abs(myMedian - hisMedian) * confusionFactor;
+				//}
+			}
+		}
+		
 
 		// Constraint: Min value at global min-3, 0 or bid
 		bid = Math.max(0, bid);

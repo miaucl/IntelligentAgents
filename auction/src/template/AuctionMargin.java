@@ -3,8 +3,6 @@ package template;
 import java.io.File;
 //the list of imports
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,9 +28,9 @@ import logist.topology.Topology.City;
  *
  */
 @SuppressWarnings("unused")
-public class AuctionT5 implements AuctionBehavior  
+public class AuctionMargin implements AuctionBehavior  
 {
-	private String name = "T5";
+	private String name = "Margin";
 
     private Topology topology;
     private TaskDistribution distribution;
@@ -55,9 +53,6 @@ public class AuctionT5 implements AuctionBehavior
 	private ArrayList<Long> hisBids;
 	
 	private ArrayList<Double> myCosts;
-	
-	private  List<Plan> lastBestPlans = new ArrayList<Plan>(); // New empty plan;
-	private  List<Plan> lastProposedPlans;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
@@ -115,8 +110,7 @@ public class AuctionT5 implements AuctionBehavior
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
 			lastCost = lastCostProposed;
-			lastBestPlans=lastProposedPlans;
-			
+	
 			
 		}
 		else
@@ -149,85 +143,13 @@ public class AuctionT5 implements AuctionBehavior
 		myAcceptedTasks.remove(task); //remove the task
 		double cost = bestSolution.cost();
 		double marginalCost = cost - lastCost;
-		
-		lastProposedPlans=new ArrayList<Plan>();
-		 for (Vehicle vehicle : agent.vehicles())
-        {
-			 lastProposedPlans.add(extractPlan(bestSolution, vehicle)); // Create plans for each vehicle
-        }
 	        
 		myCosts.add(marginalCost);
 		lastCostProposed = cost;
-		
-		double countTasks = Solution.taskActions.length/2;
-		
-		// Zero
-		double bid = 1.0 * marginalCost;
-		
-		// Model: cost * C * (1 - A * e^(-count(tasks))) * U(1,span)
-		double C = 1.15;
-		double A = 0.3;
-		double span = 0.1;
-		bid *= C * (1 - A * Math.exp(-countTasks)) * (1 + random.nextDouble() * span - (span/2));	
-		
-		
-		// Try to keep the median always above the counter bids (after a transition phase of some tasks)
-		if (countTasks > 1)
-		{
-			// Calculate my median bid
-			ArrayList<Long> myBidsSorted = (ArrayList<Long>)myBids.clone();
-			Collections.sort(myBidsSorted);
-			double myMedian;
-			if (myBidsSorted.size() % 2 == 0)
-			    myMedian = (myBidsSorted.get(myBidsSorted.size()/2).doubleValue() + myBidsSorted.get(myBidsSorted.size()/2 - 1).doubleValue())/2;
-			else
-				myMedian = myBidsSorted.get(myBidsSorted.size()/2).doubleValue();
-			
-			
-			// Calculate his median bid
-			ArrayList<Long> hisBidsSorted = (ArrayList<Long>)hisBids.clone();
-			Collections.sort(hisBidsSorted);
-			double hisMedian;
-			if (hisBidsSorted.size() % 2 == 0)
-			    hisMedian = (hisBidsSorted.get(hisBidsSorted.size()/2).doubleValue() + hisBidsSorted.get(hisBidsSorted.size()/2 - 1).doubleValue())/2;
-			else
-				hisMedian = hisBidsSorted.get(hisBidsSorted.size()/2).doubleValue();
-			
-			double onTop = 0.4;
-			double confusionFactor = 1.2;			
-			double offset = 500;
-			if (myMedian < hisMedian + offset)
-			{
-				if (bid < myMedian) // Approach my median
-				{
-					bid += Math.abs(myMedian - hisMedian) * onTop;
-				}
-				else // Approach my median
-				{
-					bid -= Math.abs(myMedian - hisMedian) * onTop;
-				}
-			}
-			else
-			{
-				if (bid < myMedian) // Go under his median
-				{
-					bid -= Math.abs(myMedian - hisMedian) * onTop;
-				}
-				//else // Confuse him with a big bid
-				//{
-				//	bid += Math.abs(myMedian - hisMedian) * confusionFactor;
-				//}
-			}
-		}
-		
-
-		// Constraint: Min value at global min-3, 0 or bid
-		bid = Math.max(0, bid);
-		if (myBids.size() > 0) Math.max(Collections.max(myBids).doubleValue() - 3, bid); 
-		if (hisBids.size() > 0) Math.max(Collections.max(hisBids).doubleValue() - 3, bid); 
-		
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
+		double ratio = 1.05 + (random.nextDouble() * 0.1);
+		double bid = ratio * marginalCost;
 
 		return (long) Math.round(bid);
 	}

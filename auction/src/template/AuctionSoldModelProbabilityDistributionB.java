@@ -28,9 +28,9 @@ import logist.topology.Topology.City;
  *
  */
 @SuppressWarnings("unused")
-public class AuctionT6 implements AuctionBehavior  
+public class AuctionSoldModelProbabilityDistributionB implements AuctionBehavior  
 {
-	private String name = "T6";
+	private String name = "SoldModelProbabilityDistribution";
 
     private Topology topology;
     private TaskDistribution distribution;
@@ -55,7 +55,7 @@ public class AuctionT6 implements AuctionBehavior
 	private ArrayList<Double> myCosts;
 
 	
-	private int sold = 300;
+	private int sold = 800;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
@@ -112,7 +112,7 @@ public class AuctionT6 implements AuctionBehavior
 		{
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
-			sold += (lastCost - lastCostProposed) * 0.4;
+			sold += (lastCost - lastCostProposed) * 0.2;
 			lastCost = lastCostProposed;
 			
 		}
