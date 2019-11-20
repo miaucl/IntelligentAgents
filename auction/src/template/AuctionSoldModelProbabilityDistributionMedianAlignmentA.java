@@ -56,8 +56,8 @@ public class AuctionSoldModelProbabilityDistributionMedianAlignmentA implements 
 	private ArrayList<Double> myCosts;
 
 	
-	private int sold = -300;
-	private double alpha = 0.4;
+	private int sold = -100;
+	private double alpha = 0.6;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
