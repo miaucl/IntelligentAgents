@@ -31,7 +31,7 @@ import logist.topology.Topology.City;
 @SuppressWarnings("unused")
 public class AuctionSoldModelProbabilityDistributionMedianAlignmentA implements AuctionBehavior  
 {
-	private String name = "SoldModelProbabilityDistributionMedianAlignment";
+	private String name = "SoldModelProbabilityDistributionMedianAlignmentA";
 
     private Topology topology;
     private TaskDistribution distribution;
@@ -56,7 +56,8 @@ public class AuctionSoldModelProbabilityDistributionMedianAlignmentA implements 
 	private ArrayList<Double> myCosts;
 
 	
-	private int sold = 300;
+	private int sold = -300;
+	private double alpha = 0.4;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
@@ -113,7 +114,7 @@ public class AuctionSoldModelProbabilityDistributionMedianAlignmentA implements 
 		{
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
-			sold += (lastCost - lastCostProposed) * 0.4;
+			sold += (bids[agent.id()] - (lastCost - lastCostProposed)) * alpha/2;
 			lastCost = lastCostProposed;
 			
 		}
@@ -153,7 +154,16 @@ public class AuctionSoldModelProbabilityDistributionMedianAlignmentA implements 
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
 		//double ratio = 0.95 + (random.nextDouble() * 0.1);
-		double bid = Math.max(marginalCost - (1-distribution.probability(task.deliveryCity, null)) * sold, -sold*0.3);
+		double prob = 1-distribution.probability(task.deliveryCity, null);
+		
+		double bid = marginalCost;
+		if (sold > 0)
+			bid = marginalCost - prob * alpha * sold;
+		else
+			bid = marginalCost + (1 - prob) * alpha * -sold;
+		
+		
+		
 		
 		double countTasks = Solution.taskActions.length/2;
 		// Try to keep the median always above the counter bids (after a transition phase of some tasks)
@@ -189,6 +199,8 @@ public class AuctionSoldModelProbabilityDistributionMedianAlignmentA implements 
 				bid -= Math.abs(myMedian - hisMedian) * onTop;
 			}
 		}
+		
+		bid = Math.max(bid, Math.abs(sold)*alpha/2);
 
 		return (long) Math.round(bid);
 	}
