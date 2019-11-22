@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+
+import logist.LogistPlatform;
 import logist.LogistSettings;
 
 import logist.Measures;
@@ -77,12 +79,10 @@ public class AuctionExponentialModel implements AuctionBehavior
             System.out.println("There was a problem loading the configuration file.");
         }
         
-        // the setup method cannot last more than timeout_setup milliseconds
-        timeout_setup = ls.get(LogistSettings.TimeoutKey.SETUP);
-        // the plan method cannot execute more than timeout_plan milliseconds
-        timeout_plan = ls.get(LogistSettings.TimeoutKey.PLAN);
-        // the bid method cannot execute more than timeout_bid milliseconds
-        timeout_bid = ls.get(LogistSettings.TimeoutKey.BID);
+        
+        timeout_setup = (long) LogistPlatform.getSettings().get(LogistSettings.TimeoutKey.SETUP);
+        timeout_bid = (long) LogistPlatform.getSettings().get(LogistSettings.TimeoutKey.BID);
+        timeout_plan = (long) LogistPlatform.getSettings().get(LogistSettings.TimeoutKey.PLAN);
 
 		this.topology = topology;
 		this.distribution = distribution;
