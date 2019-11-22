@@ -58,8 +58,10 @@ public class AuctionSoldModelProbabilityDistributionMedianAlignmentB implements 
 	private ArrayList<Double> myCosts;
 
 	
-	private int sold = 800;
-	private double alpha = 0.6;
+	private double goal = 1000;
+	private double sold = 0;
+	private double alpha = 0.1;
+	private int minBid = 1000;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
@@ -153,12 +155,22 @@ public class AuctionSoldModelProbabilityDistributionMedianAlignmentB implements 
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
 		//double ratio = 0.95 + (random.nextDouble() * 0.1);
-		double prob = 1-distribution.probability(task.deliveryCity, null);
+		double prob = 0;
+		for (City city : task.deliveryCity.neighbors())
+		{
+			prob+= distribution.probability(task.deliveryCity, city);
+		}
+
 		double bid = marginalCost;
-		if (sold > 0)
-			bid = marginalCost - prob * alpha * sold;
-		else
-			bid = marginalCost + (1 - prob) * alpha * -sold;
+		if (sold <= goal)
+		{
+			bid = marginalCost + (1 - prob) * alpha * marginalCost;
+			System.out.println("diff2 - " + prob);
+		}
+		
+		
+		bid = Math.max(bid, minBid);
+
 		
 		double countTasks = Solution.taskActions.length/2;
 		// Try to keep the median always above the counter bids (after a transition phase of some tasks)

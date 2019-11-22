@@ -57,8 +57,10 @@ public class AuctionSoldModelProbabilityDistributionA implements AuctionBehavior
 	private ArrayList<Double> myCosts;
 
 	
-	private int sold = -100;
-	private double alpha = 0.6;
+	private double goal = 2000;
+	private double sold = 0;
+	private double alpha = 0.2;
+	private int minBid = 600;
 	
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
     private static final int N = 10; // Number of solution space permutations calculated per iteration
@@ -105,13 +107,15 @@ public class AuctionSoldModelProbabilityDistributionA implements AuctionBehavior
 	
 	public void auctionResult(Task previous, int winner, Long[] bids) 
 	{
+		
+		
 		myBids.add(bids[agent.id()]);
 		hisBids.add(bids[agent.id() == 0 ? 1 : 0]); // Assuming only 2 agents play
 		if (winner == agent.id()) 
 		{
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
-			sold += (bids[agent.id()] - (lastCost - lastCostProposed)) * alpha/2;
+			sold += (bids[agent.id()] - this.myCosts.get(this.myCosts.size()-1));
 			lastCost = lastCostProposed;
 			
 		}
@@ -128,6 +132,8 @@ public class AuctionSoldModelProbabilityDistributionA implements AuctionBehavior
 	@Override
 	public Long askPrice(Task task) 
 	{
+		
+		
 		boolean canCarry = false;
 		for (Vehicle vehicle : agent.vehicles())
 		{
@@ -151,16 +157,21 @@ public class AuctionSoldModelProbabilityDistributionA implements AuctionBehavior
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
 		//double ratio = 0.95 + (random.nextDouble() * 0.1);
-		
-		double prob = 1-distribution.probability(task.deliveryCity, null);
+		double prob = 0;
+		for (City city : task.deliveryCity.neighbors())
+		{
+			prob+= distribution.probability(task.deliveryCity, city);
+		}
+
 		double bid = marginalCost;
-		if (sold > 0)
-			bid = marginalCost - prob * alpha * sold;
-		else
-			bid = marginalCost + (1 - prob) * alpha * -sold;
+		if (sold <= goal)
+		{
+			bid = marginalCost + (1 - prob) * alpha * marginalCost;
+			System.out.println("diff2 - " + prob);
+		}
 		
 		
-		bid = Math.max(bid, Math.abs(sold)*alpha/2);
+		bid = Math.max(bid, minBid);
 
 		return (long) Math.round(bid);
 	}
