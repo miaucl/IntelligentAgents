@@ -164,7 +164,6 @@ public class AuctionSoldModelProbabilityDistributionB implements AuctionBehavior
 		if (sold <= goal)
 		{
 			bid = marginalCost + (1 - prob) * alpha * marginalCost;
-			System.out.println("diff2 - " + prob);
 		}
 		
 		
