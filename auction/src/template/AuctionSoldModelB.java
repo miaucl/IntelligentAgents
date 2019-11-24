@@ -114,7 +114,7 @@ public class AuctionSoldModelB implements AuctionBehavior
 		{
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
-			sold += (lastCost - lastCostProposed) * 0.2;
+			sold += (bids[agent.id()] - this.myCosts.get(this.myCosts.size()-1));
 			lastCost = lastCostProposed;
 			
 		}

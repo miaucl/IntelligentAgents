@@ -57,10 +57,10 @@ public class AuctionSoldModelA implements AuctionBehavior
 	private ArrayList<Double> myCosts;
 
 	
-	private double goal = 2000;
+	private double goal = 3000;
 	private double sold = 0;
-	private double alpha = 0.2;
-	private int minBid = 600;
+	private double alpha = 0.6;
+	private int minBid = 2200;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
@@ -114,7 +114,7 @@ public class AuctionSoldModelA implements AuctionBehavior
 		{
 			myTaskRewards += previous.reward;
 			myAcceptedTasks.add(previous); // add the task definitively
-			sold += (lastCost - lastCostProposed) * 0.4;
+			sold += (bids[agent.id()] - this.myCosts.get(this.myCosts.size()-1));
 			lastCost = lastCostProposed;
 			
 		}

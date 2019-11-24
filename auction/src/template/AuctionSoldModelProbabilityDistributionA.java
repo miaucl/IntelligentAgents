@@ -57,10 +57,10 @@ public class AuctionSoldModelProbabilityDistributionA implements AuctionBehavior
 	private ArrayList<Double> myCosts;
 
 	
-	private double goal = 2000;
+	private double goal = 3000;
 	private double sold = 0;
-	private double alpha = 0.2;
-	private int minBid = 600;
+	private double alpha = 0.6;
+	private int minBid = 2200;
 	
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
     private static final int N = 10; // Number of solution space permutations calculated per iteration
