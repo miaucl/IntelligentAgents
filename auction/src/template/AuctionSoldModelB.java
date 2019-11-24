@@ -57,7 +57,10 @@ public class AuctionSoldModelB implements AuctionBehavior
 	private ArrayList<Double> myCosts;
 
 	
-	private int sold = 800;
+	private double goal = 1000;
+	private double sold = 0;
+	private double alpha = 0.1;
+	private int minBid = 1000;
 	
     
     private static final double P = 0.8; // Probability to pick old solution instead of new permutation
@@ -151,7 +154,14 @@ public class AuctionSoldModelB implements AuctionBehavior
 
 		System.out.println(name + " - " + agent.id() + "\tLast cost: " + lastCost + "\t cost: " + cost);
 		//double ratio = 0.95 + (random.nextDouble() * 0.1);
-		double bid = Math.max(marginalCost - sold * 0.1, -sold*0.3);
+		double bid = marginalCost;
+		if (sold <= goal)
+		{
+			bid = marginalCost + alpha * marginalCost;
+		}
+		
+		
+		bid = Math.max(bid, minBid);
 
 		return (long) Math.round(bid);
 	}
