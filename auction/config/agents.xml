@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<agents>
+	<!-- A list of agents and their behavior classes -->
+	
+	<!-- #### AUCTION AGENTS ### -->
+	<agent name="auction-main-25">
+		<set class-path="bin/"/>
+		<set class-name="template.AuctionSoldModelProbabilityDistributionMedianAlignmentA"/>
+	</agent>
+	<agent name="auction-random">
+		<set class-path="bin/"/>
+		<set class-name="template.AuctionTemplate"/>
+	</agent>
+	<agent name="auction-null">
+		<set class-path="bin/"/>
+		<set class-name="template.AuctionNULL"/>
+	</agent>
+	<agent name="auction-T0">
+		<set class-path="bin/"/>
+		<set class-name="template.AuctionSoldModelProbabilityDistributionMedianAlignmentA"/>
+	</agent>
+	<agent name="auction-T1">
+		<set class-path="bin/"/>
+		<set class-name="template.AuctionSoldModelProbabilityDistributionMedianAlignmentB"/>
+	</agent>
+	<agent name="auction-zero">
+		<set class-path="bin/"/>
+		<set class-name="template.AuctionZERO"/>
+	</agent>
+	
+</agents>

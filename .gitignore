@@ -1,2 +1,4 @@
 /.metadata/
-vianey-lippuner-in/bin
+**/bin/**
+**/agents/**
+**/tournament/**
